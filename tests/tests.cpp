@@ -264,3 +264,23 @@ TEST_CASE("week_test_3") {
     REQUIRE("第一周" == w.get_name());
     REQUIRE("2023年10月第一周" == w.to_string());
 }
+
+TEST_CASE("rab_byung_year_test_0") {
+    const RabByungYear y = RabByungYear::from_element_zodiac(0, RabByungElement::from_name("火"), Zodiac::from_name("兔"));
+    REQUIRE("第一饶迥火兔年" == y.get_name());
+    REQUIRE("1027年" == y.get_solar_year().get_name());
+    REQUIRE("丁卯" == y.get_sixty_cycle().get_name());
+    REQUIRE(10 == y.get_leap_month());
+}
+
+TEST_CASE("rab_byung_year_test_1") {
+    REQUIRE("第一饶迥火兔年" == RabByungYear::from_year(1027).get_name());
+}
+
+TEST_CASE("rab_byung_month_test_0") {
+    REQUIRE("第十六饶迥铁虎年十二月" == RabByungMonth::from_ym(1950, 12).to_string());
+}
+
+TEST_CASE("rab_byung_day_test_7") {
+    REQUIRE("第十七饶迥木蛇年二月廿九" == SolarDay::from_ymd(2025, 4, 26).get_rab_byung_day().to_string());
+}

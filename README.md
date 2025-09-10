@@ -16,6 +16,9 @@ Tyme是一个非常强大的日历工具库，可以看作 [Lunar](https://6tail
     // 农历丙寅年四月廿一
     std::cout << solar_day.get_lunar_day().to_string() << std::endl;
 
+    // 第十七饶迥火虎年四月廿一
+    std::cout << solar_day.get_rab_byung_day().to_string() << std::endl;
+
 ## 文档
 
 请移步至 [https://6tail.cn/tyme.html](https://6tail.cn/tyme.html "https://6tail.cn/tyme.html")

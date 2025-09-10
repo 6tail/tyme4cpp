@@ -509,6 +509,10 @@ namespace tyme {
         return from_index(next_index(n));
     }
 
+    bool Zodiac::equals(const Zodiac &other) const {
+        return to_string() == other.to_string();
+    }
+
     EarthBranch Zodiac::get_earth_branch() const {
         return EarthBranch::from_index(index);
     }
@@ -1162,19 +1166,18 @@ namespace tyme {
     }
 
     SolarTime JulianDay::get_solar_time() const {
-        int n = static_cast<int>(floor(day + 0.5));
-        double f = day + 0.5 - n;
+        int d = static_cast<int>(floor(day + 0.5));
+        double f = day + 0.5 - d;
 
-        if (n >= 2299161) {
-            const int c = static_cast<int>((n - 1867216.25) / 36524.25);
-            n += 1 + c - static_cast<int>(c * 0.25);
+        if (d >= 2299161) {
+            const int c = static_cast<int>((d - 1867216.25) / 36524.25);
+            d += 1 + c - static_cast<int>(c * 0.25);
         }
-        n += 1524;
-        int y = static_cast<int>((n - 122.1) / 365.25);
-        n -= static_cast<int>(365.25 * y);
-        int m = static_cast<int>(n / 30.601);
-        n -= static_cast<int>(30.601 * m);
-        const int d = n;
+        d += 1524;
+        int y = static_cast<int>((d - 122.1) / 365.25);
+        d -= static_cast<int>(365.25 * y);
+        int m = static_cast<int>(d / 30.601);
+        d -= static_cast<int>(30.601 * m);
         if (m > 13) {
             m -= 12;
         } else {
@@ -2343,20 +2346,15 @@ namespace tyme {
     NineStar LunarHour::get_nine_star() const {
         const SolarDay solar = day.get_solar_day();
         const SolarTerm dong_zhi = SolarTerm::from_index(solar.get_year(), 0);
-        const bool asc = !solar.is_before(dong_zhi.get_julian_day().get_solar_day()) && solar.is_before(dong_zhi.next(12).get_julian_day().get_solar_day());
-        constexpr int indices[] = {8, 5, 2};
-        int start = indices[day.get_sixty_cycle().get_earth_branch().get_index() % 3];
-        if (asc) {
-            start = 8 - start;
-        }
         const int earth_branch_index = get_index_in_day() % 12;
-        int offset = start;
-        if (asc) {
-            offset += earth_branch_index;
+        constexpr int indices[] = {8, 5, 2};
+        int index = indices[day.get_sixty_cycle().get_earth_branch().get_index() % 3];
+        if (!solar.is_before(dong_zhi.get_julian_day().get_solar_day()) && solar.is_before(dong_zhi.next(12).get_julian_day().get_solar_day())) {
+            index = 8 + earth_branch_index - index;
         } else {
-            offset -= earth_branch_index;
+            index -= earth_branch_index;
         }
-        return NineStar::from_index(offset);
+        return NineStar::from_index(index);
     }
 
     SolarTime LunarHour::get_solar_time() const {
@@ -3061,6 +3059,10 @@ namespace tyme {
         return SixtyCycleDay::from_solar_day(*this);
     }
 
+    RabByungDay SolarDay::get_rab_byung_day() const {
+        return RabByungDay::from_solar_day(*this);
+    }
+
     SolarTime &SolarTime::operator=(const SolarTime &other) {
         day = other.day;
         hour = other.hour;
@@ -3261,7 +3263,7 @@ namespace tyme {
         return SixtyCycle::from_name(HeavenStem::from_index((year.get_heaven_stem().get_index() + 1) * 2 + offset - 1).get_name() + EarthBranch::from_index(offset + 1).get_name());
     }
 
-    vector<SolarTime> EightChar::getSolarTimes(const int start_year, const int end_year) const {
+    vector<SolarTime> EightChar::get_solar_times(const int start_year, const int end_year) const {
         auto l = vector<SolarTime>();
         // 月地支距寅月的偏移值
         int m = month.get_earth_branch().next(-2).get_index();
@@ -3307,8 +3309,12 @@ namespace tyme {
                         mi = solar_time.get_minute();
                         s = solar_time.get_second();
                     }
+                    SolarTime time = SolarTime::from_ymd_hms(solar_day.get_year(), solar_day.get_month(), solar_day.get_day(), hour, mi, s);
+                    if (d == 30) {
+                        time = time.next(-3600);
+                    }
                     // 验证一下
-                    if (SolarTime time = SolarTime::from_ymd_hms(solar_day.get_year(), solar_day.get_month(), solar_day.get_day(), hour, mi, s); time.get_lunar_hour().get_eight_char().equals(this)) {
+                    if (time.get_lunar_hour().get_eight_char().equals(this)) {
                         l.push_back(time);
                     }
                 }
@@ -3898,4 +3904,390 @@ namespace tyme {
         return day.to_string() + " " + name;
     }
 
+    RabByungElement RabByungElement::from_index(const int index) {
+        return RabByungElement(index);
+    }
+
+    RabByungElement RabByungElement::from_name(const string &name) {
+        return RabByungElement(name);
+    }
+
+    RabByungElement RabByungElement::next(const int n) const {
+        return from_index(next_index(n));
+    }
+
+    bool RabByungElement::equals(const RabByungElement &other) const {
+        return to_string() == other.to_string();
+    }
+
+    RabByungElement RabByungElement::get_reinforce() const {
+        return next(1);
+    }
+
+    RabByungElement RabByungElement::get_restrain() const {
+        return next(2);
+    }
+
+    RabByungElement RabByungElement::get_reinforced() const {
+        return next(-1);
+    }
+
+    RabByungElement RabByungElement::get_restrained() const {
+        return next(-2);
+    }
+
+    Direction RabByungElement::get_direction() const {
+        const int indices[5] = {2, 8, 4, 6, 0};
+        return Direction::from_index(indices[index]);
+    }
+
+    string RabByungElement::get_name() const {
+        return regex_replace(names[index], regex("金"), "铁");
+    }
+
+    RabByungYear RabByungYear::from_sixty_cycle(const int rab_byung_index, const SixtyCycle& sixty_cycle) {
+        return RabByungYear(rab_byung_index, sixty_cycle);
+    }
+
+    RabByungYear RabByungYear::from_element_zodiac(int rab_byung_index, const RabByungElement& element, const Zodiac& zodiac) {
+        for (int i = 0; i < 60; i++) {
+            if (SixtyCycle sixty_cycle = SixtyCycle::from_index(i); sixty_cycle.get_earth_branch().get_zodiac().equals(zodiac) && sixty_cycle.get_heaven_stem().get_element().get_index() == element.get_index()) {
+                return RabByungYear(rab_byung_index, sixty_cycle);
+            }
+        }
+        throw invalid_argument("illegal rab-byung element " + element.to_string() + ", zodiac " + zodiac.to_string());
+    }
+
+    RabByungYear RabByungYear::from_year(int year) {
+        return RabByungYear((year - 1024) / 60, SixtyCycle::from_index(year - 4));
+    }
+
+    int RabByungYear::get_rab_byung_index() const {
+        return rab_byung_index;
+    }
+
+    SixtyCycle RabByungYear::get_sixty_cycle() const {
+        return sixty_cycle;
+    }
+
+    Zodiac RabByungYear::get_zodiac() const {
+        return sixty_cycle.get_earth_branch().get_zodiac();
+    }
+
+    RabByungElement RabByungYear::get_element() const {
+        return RabByungElement::from_index(sixty_cycle.get_heaven_stem().get_element().get_index());
+    }
+
+    string RabByungYear::get_name() const {
+        const string digits[] = {"零", "一", "二", "三", "四", "五", "六", "七", "八", "九"};
+        const string units[] = {"", "十", "百"};
+        int n = rab_byung_index + 1;
+        string s;
+        int pos = 0;
+        while (n > 0) {
+            if (const int digit = n % 10; digit > 0) {
+                s.insert(0, digits[digit] + units[pos]);
+            } else if (!s.empty()) {
+                s.insert(0, digits[digit]);
+            }
+            n /= 10;
+            pos++;
+        }
+        if (s.rfind("一十", 0) == 0) {
+            const string target = "一";
+            s.erase(0, target.length());
+        }
+        return "第" + s + "饶迥" + get_element().to_string() + get_zodiac().to_string() + "年";
+    }
+
+    RabByungYear RabByungYear::next(const int n) const {
+        return from_year(get_year() + n);
+    }
+
+    int RabByungYear::get_year() const {
+        return 1024 + rab_byung_index * 60 + sixty_cycle.get_index();
+    }
+
+    int RabByungYear::get_leap_month() const {
+        int y = 1;
+        int m = 4;
+        int t = 0;
+        const int current_year = get_year();
+        while (y < current_year) {
+            const int i = m - 1 + (t % 2 == 0 ? 33 : 32);
+            y = (y * 12 + i) / 12;
+            m = i % 12 + 1;
+            t++;
+        }
+        return y == current_year ? m : 0;
+    }
+
+    SolarYear RabByungYear::get_solar_year() const {
+        return SolarYear::from_year(get_year());
+    }
+
+    int RabByungYear::get_month_count() const {
+        return get_leap_month() < 1 ? 12 : 13;
+    }
+
+    RabByungMonth RabByungYear::get_first_month() const {
+        return RabByungMonth(*this, 1);
+    }
+
+    vector<RabByungMonth> RabByungYear::get_months() const {
+        auto l = vector<RabByungMonth>();
+        const int leap_month = get_leap_month();
+        for (int i = 1; i < 13; i++) {
+            l.emplace_back(*this, i);
+            if (i == leap_month) {
+                l.emplace_back(*this, -i);
+            }
+        }
+        return l;
+    }
+
+    map<int, vector<int>> RabByungMonth::DAYS = map<int, vector<int>>();
+
+    const vector<string> RabByungMonth::NAMES = {
+        "正月", "二月", "三月", "四月", "五月", "六月", "七月", "八月", "九月", "十月", "十一月", "十二月"
+    };
+
+    const vector<string> RabByungMonth::ALIAS = {
+        "神变月", "苦行月", "具香月", "萨嘎月", "作净月", "明净月", "具醉月", "具贤月", "天降月", "持众月", "庄严月", "满意月"
+    };
+
+    RabByungMonth RabByungMonth::from_ym(const int year, const int month) {
+        return RabByungMonth(year, month);
+    }
+
+    RabByungMonth RabByungMonth::from_element_zodiac(const int rab_byung_index, const RabByungElement& element, const Zodiac& zodiac, const int month) {
+        return RabByungMonth(rab_byung_index, element, zodiac, month);
+    }
+
+    RabByungYear RabByungMonth::get_rab_byung_year() const {
+        return year;
+    }
+
+    int RabByungMonth::get_year() const {
+        return year.get_year();
+    }
+
+    int RabByungMonth::get_month() const {
+        return month;
+    }
+
+    int RabByungMonth::get_month_with_leap() const {
+        return leap ? -month : month;
+    }
+
+    int RabByungMonth::get_index_in_year() const {
+        return index_in_year;
+    }
+
+    bool RabByungMonth::is_leap() const {
+        return leap;
+    }
+
+    string RabByungMonth::get_name() const {
+        return (leap ? "闰" : "") + NAMES[month - 1];
+    }
+
+    string RabByungMonth::get_alias() const {
+        return (leap ? "闰" : "") + ALIAS[month - 1];
+    }
+
+    string RabByungMonth::to_string() const {
+        return year.to_string() + get_name();
+    }
+
+    RabByungMonth RabByungMonth::next(const int n) const {
+        if (n == 0) {
+            return from_ym(get_year(), get_month_with_leap());
+        }
+        int m = index_in_year + 1 + n;
+        RabByungYear y = year;
+        if (n > 0) {
+            int month_count = y.get_month_count();
+            while (m > month_count) {
+                m -= month_count;
+                y = y.next(1);
+                month_count = y.get_month_count();
+            }
+        } else {
+            while (m <= 0) {
+                y = y.next(-1);
+                m += y.get_month_count();
+            }
+        }
+        bool leap = false;
+        if (const int leap_month = y.get_leap_month(); leap_month > 0) {
+            if (m == leap_month + 1) {
+                leap = true;
+            }
+            if (m > leap_month) {
+                m--;
+            }
+        }
+        return from_ym(y.get_year(), leap ? -m : m);
+    }
+
+    int RabByungMonth::get_day_count() const {
+        return 30 + static_cast<int>(get_leap_days().size()) - static_cast<int>(get_miss_days().size());
+    }
+
+    vector<int> RabByungMonth::get_special_days() const {
+        if (const auto it = DAYS.find(get_year() * 13 + get_index_in_year()); it != DAYS.end()) {
+            return it->second;
+        }
+        return {};
+    }
+
+    vector<int> RabByungMonth::get_leap_days() const {
+        auto l = vector<int>();
+        for (const auto days = get_special_days(); int d : days) {
+            if (d > 0) {
+                l.push_back(d);
+            }
+        }
+        return l;
+    }
+
+    vector<int> RabByungMonth::get_miss_days() const {
+        auto l = vector<int>();
+        for (const auto days = get_special_days(); int d : days) {
+            if (d < 0) {
+                l.push_back(-d);
+            }
+        }
+        return l;
+    }
+
+    bool RabByungMonth::equals(const RabByungMonth &other) const {
+        return to_string() == other.to_string();
+    }
+
+    RabByungDay RabByungMonth::get_first_day() const {
+        return RabByungDay(*this, 1);
+    }
+
+    vector<RabByungDay> RabByungMonth::get_days() const {
+        auto l = vector<RabByungDay>();
+        auto miss_days = get_miss_days();
+        auto leap_days = get_leap_days();
+        for (int i = 1; i < 31; i++) {
+            if (ranges::find(miss_days, i) != miss_days.end()) {
+                continue;
+            }
+            l.emplace_back(*this, i);
+            if (ranges::find(leap_days, i) != leap_days.end()) {
+                l.emplace_back(*this, -i);
+            }
+        }
+        return l;
+    }
+
+    const vector<string> RabByungDay::NAMES = {
+        "初一", "初二", "初三", "初四", "初五", "初六", "初七", "初八", "初九", "初十", "十一", "十二", "十三", "十四", "十五", "十六", "十七", "十八", "十九", "二十", "廿一", "廿二", "廿三", "廿四", "廿五", "廿六", "廿七", "廿八", "廿九", "三十"
+    };
+
+    RabByungDay RabByungDay::from_ymd(const int year, const int month, const int day) {
+        return RabByungDay(year, month, day);
+    }
+
+    RabByungDay RabByungDay::from_element_zodiac(const int rab_byung_index, const RabByungElement &element, const Zodiac &zodiac, const int month, const int day) {
+        return RabByungDay(rab_byung_index, element, zodiac, month, day);
+    }
+
+    RabByungDay RabByungDay::from_solar_day(const SolarDay& solar_day) {
+        int days = solar_day.subtract(SolarDay::from_ymd(1951, 1, 8));
+        RabByungMonth m = RabByungMonth::from_ym(1950, 12);
+        int count = m.get_day_count();
+        while (days >= count) {
+            days -= count;
+            m = m.next(1);
+            count = m.get_day_count();
+        }
+        int day = days + 1;
+        for (const int d : m.get_special_days()) {
+            if (d < 0) {
+                if (day >= -d) {
+                    day++;
+                }
+            } else if (d > 0) {
+                if (day == d + 1) {
+                    day = -d;
+                    break;
+                }
+                if (day > d + 1) {
+                    day--;
+                }
+            }
+        }
+        return RabByungDay(m, day);
+    }
+
+    RabByungMonth RabByungDay::get_rab_byung_month() const {
+        return month;
+    }
+
+    int RabByungDay::get_year() const {
+        return month.get_year();
+    }
+
+    int RabByungDay::get_month() const {
+        return month.get_month_with_leap();
+    }
+
+    int RabByungDay::get_day() const {
+        return day;
+    }
+
+    bool RabByungDay::is_leap() const {
+        return leap;
+    }
+
+    int RabByungDay::get_day_with_leap() const {
+        return leap ? -day : day;
+    }
+
+    string RabByungDay::get_name() const {
+        return (leap ? "闰" : "") + NAMES[day - 1];
+    }
+
+    string RabByungDay::to_string() const {
+        return month.to_string() + get_name();
+    }
+
+    int RabByungDay::subtract(const RabByungDay& target) const {
+        return get_solar_day().subtract(target.get_solar_day());
+    }
+
+    SolarDay RabByungDay::get_solar_day() const {
+        RabByungMonth m = RabByungMonth::from_ym(1950, 12);
+        int n = 0;
+        while (!month.equals(m)) {
+            n += m.get_day_count();
+            m = m.next(1);
+        }
+        int t = day;
+        for (const int d : m.get_special_days()) {
+            if (d < 0) {
+                if (t > -d) {
+                    t--;
+                }
+            } else if (d > 0) {
+                if (t > d) {
+                    t++;
+                }
+            }
+        }
+        if (leap) {
+            t++;
+        }
+        return SolarDay::from_ymd(1951, 1, 7).next(n + t);
+    }
+
+    RabByungDay RabByungDay::next(const int n) const {
+        return get_solar_day().next(n).get_rab_byung_day();
+    }
 }
