@@ -1,6 +1,7 @@
 #ifndef TYME_UTIL_H
 #define TYME_UTIL_H
 #include <string>
+#include <vector>
 
 using namespace std;
 
