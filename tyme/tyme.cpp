@@ -2,7 +2,14 @@
 #include <regex>
 #include <iostream>
 #include <sstream>
+#include <optional>
+#include <cmath>
+#ifndef M_PI
+#define M_PI 3.14159265358979323846
+#endif
 #include "tyme.h"
+
+using std::ceil;
 
 using namespace std;
 
@@ -698,30 +705,31 @@ namespace tyme {
 
     string FetusDay::get_name() const {
         string s = fetus_heaven_stem.get_name() + fetus_earth_branch.get_name();
+        string door = "门";
         if ("门门" == s) {
             s = "占大门";
         } else if ("碓磨碓" == s) {
             s = "占碓磨";
         } else if ("房床床" == s) {
             s = "占房床";
-        } else if (s.starts_with("门")) {
+        } else if (s.compare(0, door.size(), door) == 0) {
             s = "占" + s;
         }
 
         s += " ";
 
-        s += Side::IN == side ? "房内" : "外";
+        s += tyme::Side::IN == side ? "房内" : "外";
 
         string ds = "北南西东";
         string direction_name = direction.get_name();
-        if (Side::OUT == side && ds.find(direction_name) != string::npos) {
+        if (tyme::Side::OUT == side && ds.find(direction_name) != string::npos) {
             s += "正";
         }
         s += direction_name;
         return s;
     }
 
-    Side FetusDay::get_side() const {
+    tyme::Side FetusDay::get_side() const {
         return side;
     }
 
@@ -1292,7 +1300,7 @@ namespace tyme {
         return heaven_stem;
     }
 
-    HideHeavenStemType HideHeavenStem::get_type() const {
+    tyme::HideHeavenStemType HideHeavenStem::get_type() const {
         return type;
     }
 
@@ -1371,14 +1379,14 @@ namespace tyme {
 
     vector<HideHeavenStem> EarthBranch::get_hide_heaven_stems() const {
         auto l = vector<HideHeavenStem>();
-        l.emplace_back(get_hide_heaven_stem_main(), HideHeavenStemType::MAIN);
+        l.emplace_back(get_hide_heaven_stem_main(), tyme::HideHeavenStemType::MAIN);
         optional<HeavenStem> o = get_hide_heaven_stem_middle();
         if (o.has_value()) {
-            l.emplace_back(o.value(), HideHeavenStemType::MIDDLE);
+            l.emplace_back(o.value(), tyme::HideHeavenStemType::MIDDLE);
         }
         o = get_hide_heaven_stem_residual();
         if (o.has_value()) {
-            l.emplace_back(o.value(), HideHeavenStemType::RESIDUAL);
+            l.emplace_back(o.value(), tyme::HideHeavenStemType::RESIDUAL);
         }
         return l;
     }
@@ -1830,7 +1838,7 @@ namespace tyme {
             return 11;
         }
         for (int i = 0; i < 12; i++) {
-            if (vector<int> l = LEAP[i]; ranges::find(l, year) != l.end()) {
+            if (vector<int> l = LEAP[i]; find(l.begin(), l.end(), year) != l.end()) {
                 return i + 1;
             }
         }
@@ -3018,16 +3026,16 @@ namespace tyme {
             }
             type_index++;
         }
-        HideHeavenStemType type;
+        tyme::HideHeavenStemType type;
         switch (type_index) {
             case 1:
-                type = HideHeavenStemType::MIDDLE;
+                type = tyme::HideHeavenStemType::MIDDLE;
                 break;
             case 2:
-                type = HideHeavenStemType::MAIN;
+                type = tyme::HideHeavenStemType::MAIN;
                 break;
             default:
-                type = HideHeavenStemType::RESIDUAL;
+                type = tyme::HideHeavenStemType::RESIDUAL;
         }
         auto h = HideHeavenStem(heaven_stem_index, type);
         return HideHeavenStemDay(h, day_index);
@@ -3365,7 +3373,7 @@ namespace tyme {
         return minute_count;
     }
 
-    bool ChildLimit::get_forward(const EightChar &eight_char, const Gender gender) {
+    bool ChildLimit::get_forward(const EightChar &eight_char, const tyme::Gender gender) {
         // 阳男阴女顺推，阴男阳女逆推
         const bool yang = YinYang::YANG == eight_char.get_year().get_heaven_stem().get_yin_yang();
         const bool man = Gender::MAN == gender;
@@ -3446,7 +3454,7 @@ namespace tyme {
         return Fortune::from_child_limit(child_limit, index * 10);
     }
 
-    ChildLimit ChildLimit::from_solar_time(const SolarTime& birth_time, const Gender gender) {
+    ChildLimit ChildLimit::from_solar_time(const SolarTime& birth_time, const tyme::Gender gender) {
         return ChildLimit(birth_time, gender);
     }
 
@@ -3454,7 +3462,7 @@ namespace tyme {
         return eight_char;
     }
 
-    Gender ChildLimit::get_gender() const {
+    tyme::Gender ChildLimit::get_gender() const {
         return gender;
     }
 
@@ -3740,7 +3748,7 @@ namespace tyme {
     string SolarFestival::DATA = "@00001011950@01003081950@02003121979@03005011950@04005041950@05006011950@06007011941@07008011933@08009101985@09010011950";
 
     optional<SolarFestival> SolarFestival::from_index(const int year, const int index) {
-        if (index < 0 || index >= NAMES.size()) {
+        if (index < 0 || static_cast<size_t>(index) >= NAMES.size()) {
             throw invalid_argument("illegal index: " + std::to_string(index));
         }
         char buffer[3];
@@ -3790,7 +3798,7 @@ namespace tyme {
     }
 
     FestivalType SolarFestival::get_type() const {
-        return type;
+        return _type;
     }
 
     int SolarFestival::get_index() const {
@@ -3820,7 +3828,7 @@ namespace tyme {
     string LunarFestival::DATA = "@0000101@0100115@0200202@0300303@04107@0500505@0600707@0700715@0800815@0900909@10124@1101208@122";
 
     optional<LunarFestival> LunarFestival::from_index(const int year, const int index) {
-        if (index < 0 || index >= NAMES.size()) {
+        if (index < 0 || static_cast<size_t>(index) >= NAMES.size()) {
             throw invalid_argument("illegal index: " + std::to_string(index));
         }
         char buffer[3];
@@ -3881,7 +3889,7 @@ namespace tyme {
     }
 
     FestivalType LunarFestival::get_type() const {
-        return type;
+        return _type;
     }
 
     int LunarFestival::get_index() const {
@@ -4046,7 +4054,7 @@ namespace tyme {
         return l;
     }
 
-    map<int, vector<int>> RabByungMonth::DAYS = map<int, vector<int>>();
+    std::map<int, vector<int>> RabByungMonth::DAYS = std::map<int, vector<int>>();
 
     const vector<string> RabByungMonth::NAMES = {
         "正月", "二月", "三月", "四月", "五月", "六月", "七月", "八月", "九月", "十月", "十一月", "十二月"
@@ -4144,7 +4152,8 @@ namespace tyme {
 
     vector<int> RabByungMonth::get_leap_days() const {
         auto l = vector<int>();
-        for (const auto days = get_special_days(); int d : days) {
+        const auto days = get_special_days();
+        for (const int d : days) {
             if (d > 0) {
                 l.push_back(d);
             }
@@ -4154,7 +4163,8 @@ namespace tyme {
 
     vector<int> RabByungMonth::get_miss_days() const {
         auto l = vector<int>();
-        for (const auto days = get_special_days(); int d : days) {
+        const auto days = get_special_days();
+        for (const int d : days) {
             if (d < 0) {
                 l.push_back(-d);
             }
@@ -4175,11 +4185,11 @@ namespace tyme {
         auto miss_days = get_miss_days();
         auto leap_days = get_leap_days();
         for (int i = 1; i < 31; i++) {
-            if (ranges::find(miss_days, i) != miss_days.end()) {
+            if (find(miss_days.begin(), miss_days.end(), i) != miss_days.end()) {
                 continue;
             }
             l.emplace_back(*this, i);
-            if (ranges::find(leap_days, i) != leap_days.end()) {
+            if (find(leap_days.begin(), leap_days.end(), i) != leap_days.end()) {
                 l.emplace_back(*this, -i);
             }
         }

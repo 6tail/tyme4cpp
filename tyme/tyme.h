@@ -1,8 +1,18 @@
 #ifndef TYME_H
 #define TYME_H
+// 取消可能存在的IN和OUT宏定义
+#ifdef IN
+#undef IN
+#endif
+#ifdef OUT
+#undef OUT
+#endif
 #include <mutex>
 #include <string>
 #include <map>
+#include <optional>
+#include <cmath>
+#include <regex>
 #include "util.h"
 
 using namespace std;
@@ -127,6 +137,14 @@ namespace tyme {
         LoopTyme(const LoopTyme &other) {
             names = other.names;
             index = other.get_index();
+        }
+
+        LoopTyme& operator=(const LoopTyme &other) {
+            if (this != &other) {
+                names = other.names;
+                index = other.get_index();
+            }
+            return *this;
         }
 
         /**
@@ -1326,13 +1344,13 @@ namespace tyme {
 
         string get_name() const override;
 
-        explicit HideHeavenStem(const HeavenStem &heaven_stem, const HideHeavenStemType type) : heaven_stem(heaven_stem), type(type) {
+        explicit HideHeavenStem(const HeavenStem &heaven_stem, const tyme::HideHeavenStemType type) : heaven_stem(heaven_stem), type(type) {
         }
 
-        explicit HideHeavenStem(const string &heaven_stem_name, const HideHeavenStemType type) : heaven_stem(HeavenStem::from_name(heaven_stem_name)), type(type) {
+        explicit HideHeavenStem(const string &heaven_stem_name, const tyme::HideHeavenStemType type) : heaven_stem(HeavenStem::from_name(heaven_stem_name)), type(type) {
         }
 
-        explicit HideHeavenStem(const int heaven_stem_index, const HideHeavenStemType type) : heaven_stem(HeavenStem::from_index(heaven_stem_index)), type(type) {
+        explicit HideHeavenStem(const int heaven_stem_index, const tyme::HideHeavenStemType type) : heaven_stem(HeavenStem::from_index(heaven_stem_index)), type(type) {
         }
 
         /**
@@ -1345,7 +1363,7 @@ namespace tyme {
          * @brief 藏干类型
          * @return 藏干类型
          */
-        HideHeavenStemType get_type() const;
+        tyme::HideHeavenStemType get_type() const;
 
     protected:
         /**
@@ -1356,7 +1374,7 @@ namespace tyme {
         /**
          * @brief 藏干类型
          */
-        HideHeavenStemType type;
+        tyme::HideHeavenStemType type;
     };
 
     /**
@@ -3899,7 +3917,7 @@ namespace tyme {
             if (index < 0 && term.get_julian_day().get_solar_day().is_after(spring_solar_day)) {
                 index += 24;
             }
-            this->month = SixtyCycleMonth(SixtyCycleYear::from_year(lunar_year.get_year()), LunarMonth::from_ym(solar_year, 1).get_sixty_cycle().next(static_cast<int>(floor(index * 1.0 / 2))));
+            this->month = SixtyCycleMonth(SixtyCycleYear::from_year(lunar_year.get_year()), LunarMonth::from_ym(solar_year, 1).get_sixty_cycle().next(static_cast<int>(std::floor(index * 1.0 / 2))));
             this->day = lunar_day.get_sixty_cycle();
         }
 
@@ -4055,7 +4073,7 @@ namespace tyme {
             if (solar_time.get_hour() >= 23) {
                 d = d.next(1);
             }
-            day = SixtyCycleDay(solar_time.get_solar_day(), SixtyCycleMonth(SixtyCycleYear::from_year(lunar_year.get_year()), LunarMonth::from_ym(solar_year, 1).get_sixty_cycle().next(static_cast<int>(floor(index * 0.5)))), d);
+            day = SixtyCycleDay(solar_time.get_solar_day(), SixtyCycleMonth(SixtyCycleYear::from_year(lunar_year.get_year()), LunarMonth::from_ym(solar_year, 1).get_sixty_cycle().next(static_cast<int>(std::floor(index * 0.5)))), d);
             hour = lunar_hour.get_sixty_cycle();
         }
 
@@ -4166,7 +4184,7 @@ namespace tyme {
         explicit FetusDay(const SixtyCycle &sixty_cycle) : AbstractCulture(), fetus_heaven_stem(FetusHeavenStem(sixty_cycle.get_heaven_stem().get_index() % 5)), fetus_earth_branch(FetusEarthBranch(sixty_cycle.get_earth_branch().get_index() % 6)) {
             constexpr int indices[] = {3, 3, 8, 8, 8, 8, 8, 1, 1, 1, 1, 1, 1, 6, 6, 6, 6, 6, 5, 5, 5, 5, 5, 5, 0, 0, 0, 0, 0, -9, -9, -9, -9, -9, -5, -5, -1, -1, -1, -3, -7, -7, -7, -7, -5, 7, 7, 7, 7, 7, 7, 2, 2, 2, 2, 2, 3, 3, 3, 3};
             const int index = indices[sixty_cycle.get_index()];
-            side = index < 0 ? Side::IN : Side::OUT;
+            side = index < 0 ? tyme::Side::IN : tyme::Side::OUT;
             direction = Direction::from_index(index);
         }
 
@@ -4186,7 +4204,7 @@ namespace tyme {
          * @brief 内外
          * @return 内外
          */
-        Side get_side() const;
+        tyme::Side get_side() const;
 
         /**
          * @brief 方位
@@ -4220,7 +4238,7 @@ namespace tyme {
         /**
          * @brief 内外
          */
-        Side side;
+        tyme::Side side;
 
         /**
          * @brief 方位
@@ -4473,10 +4491,10 @@ namespace tyme {
 
         ~ChildLimit() = default;
 
-        explicit ChildLimit(const SolarTime &birth_time, const Gender gender): eight_char(birth_time.get_lunar_hour().get_eight_char()), gender(gender), forward(get_forward(eight_char, gender)), info(get_info(birth_time, forward)) {
+        explicit ChildLimit(const SolarTime &birth_time, const tyme::Gender gender): eight_char(birth_time.get_lunar_hour().get_eight_char()), gender(gender), forward(get_forward(eight_char, gender)), info(get_info(birth_time, forward)) {
         }
 
-        static ChildLimit from_solar_time(const SolarTime &birth_time, Gender gender);
+        static ChildLimit from_solar_time(const SolarTime &birth_time, tyme::Gender gender);
 
         /**
          * @brief 八字
@@ -4488,7 +4506,7 @@ namespace tyme {
          * @brief 性别
          * @return 性别
          */
-        Gender get_gender() const;
+        tyme::Gender get_gender() const;
 
         /**
          * @brief 是否顺推
@@ -4589,7 +4607,7 @@ namespace tyme {
         /**
          * @brief 性别
          */
-        Gender gender;
+        tyme::Gender gender;
 
         /**
          * @brief 顺逆
@@ -4602,7 +4620,7 @@ namespace tyme {
         ChildLimitInfo info;
 
     private:
-        bool get_forward(const EightChar &eight_char, Gender gender);
+        bool get_forward(const EightChar &eight_char, tyme::Gender gender);
 
         ChildLimitInfo get_info(const SolarTime &birth_time, bool forward);
     };
@@ -4770,122 +4788,6 @@ namespace tyme {
     };
 
     /**
-     * @brief 公历现代节日
-     */
-    class SolarFestival : public AbstractCulture {
-    public:
-        ~SolarFestival() override = default;
-
-        static const vector<string> NAMES;
-        static string DATA;
-
-        explicit SolarFestival(const FestivalType type, const SolarDay &day, const int start_year, const string &data): type(type), index(stoi(data.substr(1, 2))), day(day), name(NAMES[index]), start_year(start_year) {
-        }
-
-        static optional<SolarFestival> from_index(int year, int index);
-
-        static optional<SolarFestival> from_ymd(int year, int month, int day);
-
-        FestivalType get_type() const;
-
-        int get_index() const;
-
-        SolarDay get_day() const;
-
-        int get_start_year() const;
-
-        optional<SolarFestival> next(int n) const;
-
-        string to_string() const override;
-
-        string get_name() const override;
-
-    protected:
-        /**
-         * @brief 类型
-         */
-        FestivalType type;
-
-        /**
-         * @brief 索引
-         */
-        int index;
-
-        /**
-         * @brief 公历日
-         */
-        SolarDay day;
-
-        /**
-         * @brief 名称
-         */
-        string name;
-
-        /**
-         * @brief 起始年
-         */
-        int start_year;
-    };
-
-    /**
-     * @brief 农历传统节日（依据国家标准《农历的编算和颁行》GB/T 33661-2017）
-     */
-    class LunarFestival : public AbstractCulture {
-    public:
-        ~LunarFestival() override = default;
-
-        static const vector<string> NAMES;
-        static string DATA;
-
-        explicit LunarFestival(const FestivalType type, const LunarDay &day, optional<SolarTerm> solar_term, const string &data): type(type), index(stoi(data.substr(1, 2))), day(day), name(NAMES[index]), solar_term(std::move(solar_term)) {
-        }
-
-        static optional<LunarFestival> from_index(int year, int index);
-
-        static optional<LunarFestival> from_ymd(int year, int month, int day);
-
-        FestivalType get_type() const;
-
-        int get_index() const;
-
-        LunarDay get_day() const;
-
-        optional<SolarTerm> get_solar_term() const;
-
-        optional<LunarFestival> next(int n) const;
-
-        string to_string() const override;
-
-        string get_name() const override;
-
-    protected:
-        /**
-         * @brief 类型
-         */
-        FestivalType type;
-
-        /**
-         * @brief 索引
-         */
-        int index;
-
-        /**
-         * @brief 农历日
-         */
-        LunarDay day;
-
-        /**
-         * @brief 名称
-         */
-        string name;
-
-        /**
-         * @brief 节气
-         */
-        optional<SolarTerm> solar_term;
-    };
-
-    /**
      * @brief 藏历五行
      */
     class RabByungElement : public Element {
@@ -5047,7 +4949,7 @@ namespace tyme {
 
         static const vector<string> NAMES;
         static const vector<string> ALIAS;
-        static map<int, vector<int>> DAYS;
+        static std::map<int, vector<int>> DAYS;
 
         explicit RabByungMonth(const RabByungYear& year, const int month): AbstractCulture(), year(year), month(month), leap(month < 0) {
             static once_flag flag;
@@ -5210,6 +5112,122 @@ namespace tyme {
          */
         int index_in_year;
     };
+    
+    /**
+     * @brief 公历现代节日
+     */
+    class SolarFestival : public AbstractCulture {
+    public:
+        ~SolarFestival() override = default;
+
+        static const vector<string> NAMES;
+        static string DATA;
+
+        explicit SolarFestival(const tyme::FestivalType type, const SolarDay &day, const int start_year, const string &data): _type(type), index(stoi(data.substr(1, 2))), day(day), name(NAMES[index]), start_year(start_year) {
+        }
+
+        static optional<SolarFestival> from_index(int year, int index);
+
+        static optional<SolarFestival> from_ymd(int year, int month, int day);
+
+        tyme::FestivalType get_type() const;
+
+        int get_index() const;
+
+        SolarDay get_day() const;
+
+        int get_start_year() const;
+
+        optional<SolarFestival> next(int n) const;
+
+        string to_string() const override;
+
+        string get_name() const override;
+
+    protected:
+        /**
+         * @brief 类型
+         */
+        tyme::FestivalType _type;
+
+        /**
+         * @brief 索引
+         */
+        int index;
+
+        /**
+         * @brief 公历日
+         */
+        SolarDay day;
+
+        /**
+         * @brief 名称
+         */
+        string name;
+
+        /**
+         * @brief 起始年
+         */
+        int start_year;
+    };
+
+    /**
+     * @brief 农历传统节日（依据国家标准《农历的编算和颁行》GB/T 33661-2017）
+     */
+    class LunarFestival : public AbstractCulture {
+    public:
+        ~LunarFestival() override = default;
+
+        static const vector<string> NAMES;
+        static string DATA;
+
+        explicit LunarFestival(const tyme::FestivalType type, const LunarDay &day, optional<SolarTerm> solar_term, const string &data): _type(type), index(stoi(data.substr(1, 2))), day(day), name(NAMES[index]), solar_term(std::move(solar_term)) {
+        }
+
+        static optional<LunarFestival> from_index(int year, int index);
+
+        static optional<LunarFestival> from_ymd(int year, int month, int day);
+
+        tyme::FestivalType get_type() const;
+
+        int get_index() const;
+
+        LunarDay get_day() const;
+
+        optional<SolarTerm> get_solar_term() const;
+
+        optional<LunarFestival> next(int n) const;
+
+        string to_string() const override;
+
+        string get_name() const override;
+
+    protected:
+        /**
+         * @brief 类型
+         */
+        tyme::FestivalType _type;
+
+        /**
+         * @brief 索引
+         */
+        int index;
+
+        /**
+         * @brief 农历日
+         */
+        LunarDay day;
+
+        /**
+         * @brief 名称
+         */
+        string name;
+
+        /**
+         * @brief 节气
+         */
+        optional<SolarTerm> solar_term;
+    };
 
     /**
      * @brief 藏历日，仅支持藏历1950年十二月初一（公历1951年1月8日）至藏历2050年十二月三十（公历2051年2月11日）
@@ -5226,12 +5244,12 @@ namespace tyme {
             }
             const int d = abs(day);
             if (leap) {
-                if (vector<int> l = month.get_leap_days(); ranges::find(l, d) != l.end()) {
+                if (vector<int> l = month.get_leap_days(); find(l.begin(), l.end(), d) != l.end()) {
                     throw invalid_argument("illegal leap day " + std::to_string(d) + " in " + month.to_string());
                 }
             }
             if (!leap) {
-                if (vector<int> l = month.get_miss_days(); ranges::find(l, d) != l.end()) {
+                if (vector<int> l = month.get_miss_days(); find(l.begin(), l.end(), d) != l.end()) {
                     throw invalid_argument("illegal day " + std::to_string(d) + " in " + month.to_string());
                 }
             }
@@ -5319,5 +5337,9 @@ namespace tyme {
          */
         bool leap;
     };
+    
+    // 使用using声明简化类型名称
+    using tyme::FestivalType;
+    using tyme::Gender;
 }
 #endif
