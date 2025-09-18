@@ -139,6 +139,14 @@ namespace tyme {
             index = other.get_index();
         }
 
+        LoopTyme& operator=(const LoopTyme &other) {
+            if (this != &other) {
+                names = other.names;
+                index = other.get_index();
+            }
+            return *this;
+        }
+
         /**
          * @brief 索引
          * @return 索引，从0开始

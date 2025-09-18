@@ -3748,7 +3748,7 @@ namespace tyme {
     string SolarFestival::DATA = "@00001011950@01003081950@02003121979@03005011950@04005041950@05006011950@06007011941@07008011933@08009101985@09010011950";
 
     optional<SolarFestival> SolarFestival::from_index(const int year, const int index) {
-        if (index < 0 || index >= NAMES.size()) {
+        if (index < 0 || static_cast<size_t>(index) >= NAMES.size()) {
             throw invalid_argument("illegal index: " + std::to_string(index));
         }
         char buffer[3];
@@ -3828,7 +3828,7 @@ namespace tyme {
     string LunarFestival::DATA = "@0000101@0100115@0200202@0300303@04107@0500505@0600707@0700715@0800815@0900909@10124@1101208@122";
 
     optional<LunarFestival> LunarFestival::from_index(const int year, const int index) {
-        if (index < 0 || index >= NAMES.size()) {
+        if (index < 0 || static_cast<size_t>(index) >= NAMES.size()) {
             throw invalid_argument("illegal index: " + std::to_string(index));
         }
         char buffer[3];
