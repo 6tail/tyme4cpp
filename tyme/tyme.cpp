@@ -4054,7 +4054,7 @@ namespace tyme {
         return l;
     }
 
-    map<int, vector<int>> RabByungMonth::DAYS = map<int, vector<int>>();
+    std::map<int, vector<int>> RabByungMonth::DAYS = std::map<int, vector<int>>();
 
     const vector<string> RabByungMonth::NAMES = {
         "正月", "二月", "三月", "四月", "五月", "六月", "七月", "八月", "九月", "十月", "十一月", "十二月"

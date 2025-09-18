@@ -4949,7 +4949,7 @@ namespace tyme {
 
         static const vector<string> NAMES;
         static const vector<string> ALIAS;
-        static map<int, vector<int>> DAYS;
+        static std::map<int, vector<int>> DAYS;
 
         explicit RabByungMonth(const RabByungYear& year, const int month): AbstractCulture(), year(year), month(month), leap(month < 0) {
             static once_flag flag;
