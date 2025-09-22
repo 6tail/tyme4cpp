@@ -2434,6 +2434,11 @@ namespace tyme {
     class FetusDay;
 
     /**
+     * @brief 农历传统节日
+     */
+    class LunarFestival;
+
+    /**
      * @brief 农历日
      */
     class LunarDay : public AbstractCulture {
@@ -2591,6 +2596,12 @@ namespace tyme {
          * @return 小六壬
          */
         MinorRen get_minor_ren() const;
+
+        /**
+         * @brief 农历传统节日
+         * @return 农历传统节日，如果没有则返回空
+         */
+        optional<LunarFestival> get_festival() const;
 
     protected:
         /**

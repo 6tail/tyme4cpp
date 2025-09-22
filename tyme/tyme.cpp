@@ -2248,6 +2248,10 @@ namespace tyme {
         return get_lunar_month().get_minor_ren().next(day - 1);
     }
 
+    optional<LunarFestival> LunarDay::get_festival() const {
+        return LunarFestival::from_ymd(get_year(), get_month(), day);
+    }
+
     LunarHour LunarHour::from_ymd_hms(const int year, const int month, int day, int hour, const int minute, int second) {
         return LunarHour(year, month, day, hour, minute, second);
     }
@@ -3836,7 +3840,7 @@ namespace tyme {
         const regex re("@" + string(buffer) + "\\d+");
         if (smatch match; regex_search(DATA, match, re)) {
             const string data= match[0];
-            char d = data[3];
+            const char d = data[3];
             if ('0' == d) {
                 return LunarFestival(FestivalType::DAY, LunarDay::from_ymd(year, stoi(data.substr(4, 2)), stoi(data.substr(6))), nullopt, data);
             }
@@ -3852,15 +3856,13 @@ namespace tyme {
     }
 
     optional<LunarFestival> LunarFestival::from_ymd(int year, int month, int day) {
-        char buffer[5];
-        snprintf(buffer, sizeof(buffer), "%02d%02d", month, day);
-        const regex re("@\\d{2}0" + string(buffer) + "\\d+");
+        char buffer[15];
+        snprintf(buffer, sizeof(buffer), "@\\d{2}0%02d%02d", month, day);
+        const string pattern = string(buffer);
+        const regex re(pattern);
         smatch match;
         if (regex_search(DATA, match, re)) {
             const string data= match[0];
-            if (const int start_year = stoi(data.substr(8)); year < start_year) {
-                return nullopt;
-            }
             return LunarFestival(FestivalType::DAY, LunarDay::from_ymd(year, month, day), nullopt, data);
         }
         const regex re1("@\\d{2}1\\d{2}");
