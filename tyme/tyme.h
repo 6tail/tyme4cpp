@@ -18,6 +18,11 @@
 using namespace std;
 using namespace tyme::util;
 
+// 前向声明
+namespace tyme {
+    class LunarFestival;
+}
+
 namespace tyme {
     /**
      * @brief 节日类型
@@ -2299,6 +2304,12 @@ namespace tyme {
          * @return 小六壬
          */
         MinorRen get_minor_ren() const;
+        
+        /**
+         * @brief 获取阴历节日
+         * @return 阴历节日，如果没有则返回空
+         */
+        optional<LunarFestival> get_festival() const;
 
     protected:
         /**
@@ -2494,6 +2505,12 @@ namespace tyme {
          * @param other 农历日
          * @return true/false
          */
+         
+        /**
+         * @brief 获取当天的阴历节日
+         * @return 阴历节日，如果没有则返回空
+         */
+        optional<LunarFestival> get_festival() const;
         bool is_after(const LunarDay &other) const;
 
         /**

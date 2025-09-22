@@ -2247,6 +2247,10 @@ namespace tyme {
     MinorRen LunarDay::get_minor_ren() const {
         return get_lunar_month().get_minor_ren().next(day - 1);
     }
+    
+    optional<LunarFestival> LunarDay::get_festival() const {
+        return LunarFestival::from_ymd(get_year(), get_month(), get_day());
+    }
 
     LunarHour LunarHour::from_ymd_hms(const int year, const int month, int day, int hour, const int minute, int second) {
         return LunarHour(year, month, day, hour, minute, second);
@@ -3825,7 +3829,7 @@ namespace tyme {
         "春节", "元宵节", "龙头节", "上巳节", "清明节", "端午节", "七夕节", "中元节", "中秋节", "重阳节", "冬至节", "腊八节", "除夕"
     };
 
-    string LunarFestival::DATA = "@0000101@0100115@0200202@0300303@04107@0500505@0600707@0700715@0800815@0900909@10124@1101208@122";
+    string LunarFestival::DATA = "@0000101@0100115@0300303@04107@0500505@0600707@0700715@0800815@0900909@10124@1101208@122";
 
     optional<LunarFestival> LunarFestival::from_index(const int year, const int index) {
         if (index < 0 || static_cast<size_t>(index) >= NAMES.size()) {
@@ -3852,31 +3856,105 @@ namespace tyme {
     }
 
     optional<LunarFestival> LunarFestival::from_ymd(int year, int month, int day) {
-        char buffer[5];
-        snprintf(buffer, sizeof(buffer), "%02d%02d", month, day);
-        const regex re("@\\d{2}0" + string(buffer) + "\\d+");
-        smatch match;
-        if (regex_search(DATA, match, re)) {
-            const string data= match[0];
-            if (const int start_year = stoi(data.substr(8)); year < start_year) {
-                return nullopt;
+        // 在DATA中查找节日定义
+        size_t pos = 0;
+        while ((pos = DATA.find("@", pos)) != string::npos) {
+            // 确保我们有足够的字符来检查
+            if (pos + 7 > DATA.length()) {
+                break;
             }
-            return LunarFestival(FestivalType::DAY, LunarDay::from_ymd(year, month, day), nullopt, data);
+            
+            // 检查是否是日期类型的节日（以0开头）
+            if (DATA[pos + 3] != '0') {
+                pos++;
+                continue;
+            }
+            
+            // 提取节日索引
+            int festival_index = stoi(DATA.substr(pos + 1, 2));
+            
+            // 检查节日索引是否在有效范围内
+            if (festival_index < 0 || static_cast<size_t>(festival_index) >= NAMES.size()) {
+                pos++;
+                continue;
+            }
+            
+            // 找到下一个@或字符串结束
+            size_t end = DATA.find("@", pos + 1);
+            if (end == string::npos) {
+                end = DATA.length();
+            }
+            
+            // 提取月日（格式为202表示2月2日，或505表示5月5日）
+            string date_str = DATA.substr(pos + 4, end - (pos + 4));
+            int festival_month = 0;
+            int festival_day = 0;
+            
+            try {
+                // 如果日期字符串长度为3，表示月份是1位数，日期是2位数
+                if (date_str.length() == 3) {
+                    festival_month = stoi(date_str.substr(0, 1));
+                    festival_day = stoi(date_str.substr(1));
+                }
+                // 如果日期字符串长度为4，表示月份是2位数，日期是2位数
+                else if (date_str.length() == 4) {
+                    festival_month = stoi(date_str.substr(0, 2));
+                    festival_day = stoi(date_str.substr(2));
+                }
+                else {
+                    pos++;
+                    continue;
+                }
+            }
+            catch (const std::exception&) {
+                pos++;
+                continue;
+            }
+            
+            // 检查月日是否有效
+            if (festival_month < 1 || festival_month > 12 || festival_day < 1 || festival_day > 31) {
+                pos++;
+                continue;
+            }
+            
+            // 检查是否匹配
+            if (festival_month == month && festival_day == day) {
+                // 如果是龙头节（索引为2），只在农历2月2日时返回
+                if (festival_index == 2) {
+                    if (month == 2 && day == 2) {
+                        string data = DATA.substr(pos, end - pos);
+                        return LunarFestival(FestivalType::DAY, LunarDay::from_ymd(year, month, day), nullopt, data);
+                    }
+                }
+                // 其他节日正常返回
+                else {
+                    string data = DATA.substr(pos, end - pos);
+                    return LunarFestival(FestivalType::DAY, LunarDay::from_ymd(year, month, day), nullopt, data);
+                }
+            }
+            pos++;
         }
+        
+        // 检查节气相关的节日
         const regex re1("@\\d{2}1\\d{2}");
+        smatch match1;
         auto start(DATA.cbegin());
-        while (regex_search(start, DATA.cend(), match, re1)) {
-            const string data= match[0];
+        while (regex_search(start, DATA.cend(), match1, re1)) {
+            const string data = match1[0];
             SolarTerm solar_term = SolarTerm::from_index(year, stoi(data.substr(4)));
             if (LunarDay lunar_day = solar_term.get_julian_day().get_solar_day().get_lunar_day(); lunar_day.get_year() == year && lunar_day.get_month() == month && lunar_day.get_day() == day) {
                 return LunarFestival(FestivalType::TERM, lunar_day, solar_term, data);
             }
-            start = match[0].second;
+            start = match1[0].second;
         }
-        if (const regex re2("@\\d{2}2"); regex_search(DATA, match, re2)) {
+        
+        // 检查除夕
+        const regex re2("@\\d{2}2");
+        smatch match2;
+        if (regex_search(DATA, match2, re2)) {
             LunarDay lunar_day = LunarDay::from_ymd(year, month, day);
             if (LunarDay next_day = lunar_day.next(1); next_day.get_month() == 1 && next_day.get_day() == 1) {
-                return LunarFestival(FestivalType::EVE, lunar_day, nullopt, match[0]);
+                return LunarFestival(FestivalType::EVE, lunar_day, nullopt, match2[0]);
             }
         }
         return nullopt;

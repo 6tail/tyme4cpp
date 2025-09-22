@@ -62,6 +62,57 @@ TEST_CASE("lunar_month_test_0") {
     REQUIRE("七月" == LunarMonth::from_ym(2359, 7).get_name());
 }
 
+TEST_CASE("lunar_festival_test_0") {
+    // 测试春节
+    auto festival = LunarDay::from_ymd(2023, 1, 1).get_festival();
+    REQUIRE(festival.has_value());
+    REQUIRE("春节" == festival.value().get_name());
+    
+    // 测试元宵节
+    festival = LunarDay::from_ymd(2023, 1, 15).get_festival();
+    REQUIRE(festival.has_value());
+    REQUIRE("元宵节" == festival.value().get_name());
+    
+    // 测试端午节
+    festival = LunarDay::from_ymd(2023, 5, 5).get_festival();
+    REQUIRE(festival.has_value());
+    REQUIRE("端午节" == festival.value().get_name());
+    
+    // 测试中秋节
+    festival = LunarDay::from_ymd(2023, 8, 15).get_festival();
+    REQUIRE(festival.has_value());
+    REQUIRE("中秋节" == festival.value().get_name());
+    
+    // 测试非节日
+    festival = LunarDay::from_ymd(2023, 2, 2).get_festival();
+    REQUIRE_FALSE(festival.has_value());
+}
+
+TEST_CASE("solar_to_lunar_festival_test") {
+    // 测试从公历日期获取农历节日
+    
+    // 测试端午节 - 公历2025年5月31日是农历五月初五(端午节)
+    auto solar_day = SolarDay::from_ymd(2025, 5, 31);
+    auto lunar_day = solar_day.get_lunar_day();
+    auto festival = lunar_day.get_festival();
+    REQUIRE(festival.has_value());
+    REQUIRE("端午节" == festival.value().get_name());
+    
+    // 测试春节 - 公历2025年1月29日是农历正月初一(春节)
+    solar_day = SolarDay::from_ymd(2025, 1, 29);
+    lunar_day = solar_day.get_lunar_day();
+    festival = lunar_day.get_festival();
+    REQUIRE(festival.has_value());
+    REQUIRE("春节" == festival.value().get_name());
+    
+    // 测试中秋节 - 公历2025年10月6日是农历八月十五(中秋节)
+    solar_day = SolarDay::from_ymd(2025, 10, 6);
+    lunar_day = solar_day.get_lunar_day();
+    festival = lunar_day.get_festival();
+    REQUIRE(festival.has_value());
+    REQUIRE("中秋节" == festival.value().get_name());
+}
+
 TEST_CASE("eight_char_test_0") {
     // 八字
     const auto eight_char = EightChar("丙寅", "癸巳", "癸酉", "己未");
