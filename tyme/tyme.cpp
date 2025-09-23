@@ -3075,6 +3075,10 @@ namespace tyme {
         return RabByungDay::from_solar_day(*this);
     }
 
+    optional<SolarFestival> SolarDay::get_festival() const {
+        return SolarFestival::from_ymd(get_year(), get_month(), get_day());
+    }
+
     SolarTime &SolarTime::operator=(const SolarTime &other) {
         day = other.day;
         hour = other.hour;

@@ -335,3 +335,30 @@ TEST_CASE("solar_to_lunar_festival_test") {
     REQUIRE(festival.has_value());
     REQUIRE("中秋节" == festival.value().get_name());
 }
+
+TEST_CASE("solar_festival_test_3") {
+    // 测试从公历日期获取公历节日
+
+    // 测试元旦节
+    auto solar_day = SolarDay::from_ymd(2025, 1, 1);
+    auto festival = solar_day.get_festival();
+    REQUIRE(festival.has_value());
+    REQUIRE("元旦" == festival.value().get_name());
+
+    // 测试劳动节
+    solar_day = SolarDay::from_ymd(2025, 5, 1);
+    festival = solar_day.get_festival();
+    REQUIRE(festival.has_value());
+    REQUIRE("五一劳动节" == festival.value().get_name());
+
+    // 测试国庆节
+    solar_day = SolarDay::from_ymd(2025, 10, 1);
+    festival = solar_day.get_festival();
+    REQUIRE(festival.has_value());
+    REQUIRE("国庆节" == festival.value().get_name());
+
+    // 测试非节日
+    solar_day = SolarDay::from_ymd(2025, 2, 1);
+    festival = solar_day.get_festival();
+    REQUIRE_FALSE(festival.has_value());
+}
