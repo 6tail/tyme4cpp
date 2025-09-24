@@ -2434,6 +2434,10 @@ namespace tyme {
     class FetusDay;
 
     /**
+     * @brief 公历传统节日
+     */
+    class SolarFestival;
+    /**
      * @brief 农历传统节日
      */
     class LunarFestival;
@@ -3364,6 +3368,12 @@ namespace tyme {
          * @return 藏历日
          */
         RabByungDay get_rab_byung_day() const;
+
+        /**
+         * @brief 公历节日
+         * @return 公历节日
+         */
+        optional<SolarFestival> get_festival() const;
 
     protected:
         /**
