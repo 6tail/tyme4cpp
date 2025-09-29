@@ -362,3 +362,13 @@ TEST_CASE("solar_festival_test_3") {
     festival = solar_day.get_festival();
     REQUIRE_FALSE(festival.has_value());
 }
+
+TEST_CASE("phase_test_8") {
+    const PhaseDay d = SolarDay::from_ymd(2023, 9, 17).get_phase_day();
+    REQUIRE("蛾眉月第2天" == d.to_string());
+}
+
+TEST_CASE("phase_test_11") {
+    const Phase phase = SolarTime::from_ymd_hms(2025, 9, 22, 3, 54, 8).get_phase();
+    REQUIRE("蛾眉月" == phase.to_string());
+}

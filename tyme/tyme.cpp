@@ -293,19 +293,72 @@ namespace tyme {
     }
 
     const vector<string> Phase::NAMES = {
-        "朔月", "既朔月", "蛾眉新月", "蛾眉新月", "蛾眉月", "夕月", "上弦月", "上弦月", "九夜月", "宵月", "宵月", "宵月", "渐盈凸月", "小望月", "望月", "既望月", "立待月", "居待月", "寝待月", "更待月", "渐亏凸月", "下弦月", "下弦月", "有明月", "有明月", "蛾眉残月", "蛾眉残月", "残月", "晓月", "晦月"
+        "新月", "蛾眉月", "上弦月", "盈凸月", "满月", "亏凸月", "下弦月", "残月"
     };
 
-    Phase Phase::from_index(const int index) {
-        return Phase(index);
+    Phase Phase::from_index(const int lunar_year, const int lunar_month, const int index) {
+        return Phase(lunar_year, lunar_month, index);
     }
 
-    Phase Phase::from_name(const string &name) {
-        return Phase(name);
+    Phase Phase::from_name(const int lunar_year, const int lunar_month, const string &name) {
+        return Phase(lunar_year, lunar_month, name);
     }
 
     Phase Phase::next(const int n) const {
-        return from_index(next_index(n));
+        const int size = get_size();
+        int i = index + n;
+        if (i < 0) {
+            i -= size;
+        }
+        i /= size;
+        LunarMonth m = LunarMonth::from_ym(lunar_year, lunar_month);
+        if (i != 0) {
+            m = m.next(i);
+        }
+        return from_index(m.get_year(), m.get_month(), next_index(n));
+    }
+
+    SolarTime Phase::get_start_solar_time() const {
+        const int n = static_cast<int>(floor((lunar_year - 2000) * 365.2422 / 29.53058886));
+        int i = 0;
+        const SolarDay d = LunarDay::from_ymd(lunar_year, lunar_month, 1).get_solar_day();
+        const double jd = JulianDay::J2000 + ShouXingUtil::ONE_THIRD;
+        while (true) {
+            if (const double t = ShouXingUtil::msa_lon_t((n + i) * ShouXingUtil::PI_2) * 36525; !JulianDay::from_julian_day(jd + t - ShouXingUtil::dt_t(t)).get_solar_day().is_before(d)) {
+                break;
+            }
+            i++;
+        }
+        constexpr int r[] = {0, 90, 180, 270};
+        const int deg = r[index / 2];
+        const double t = ShouXingUtil::msa_lon_t((n + i + deg / 360.0) * ShouXingUtil::PI_2) * 36525;
+        return JulianDay::from_julian_day(jd + t - ShouXingUtil::dt_t(t)).get_solar_time();
+    }
+
+    SolarTime Phase::get_solar_time() const {
+        const SolarTime t = get_start_solar_time();
+        return index % 2 == 1 ? t.next(1) : t;
+    }
+
+    SolarDay Phase::get_solar_day() const {
+        const SolarDay d = get_start_solar_time().get_solar_day();
+        return index % 2 == 1 ? d.next(1) : d;
+    }
+
+    int PhaseDay::get_day_index() const {
+        return day_index;
+    }
+
+    string PhaseDay::get_name() const {
+        return phase.get_name();
+    }
+
+    Phase PhaseDay::get_phase() const {
+        return phase;
+    }
+
+    string PhaseDay::to_string() const {
+        return phase.to_string() + "第" + std::to_string(day_index + 1) + "天";
     }
 
     const vector<string> Sixty::NAMES = {
@@ -718,18 +771,18 @@ namespace tyme {
 
         s += " ";
 
-        s += tyme::Side::IN == side ? "房内" : "外";
+        s += Side::IN == side ? "房内" : "外";
 
         string ds = "北南西东";
         string direction_name = direction.get_name();
-        if (tyme::Side::OUT == side && ds.find(direction_name) != string::npos) {
+        if (Side::OUT == side && ds.find(direction_name) != string::npos) {
             s += "正";
         }
         s += direction_name;
         return s;
     }
 
-    tyme::Side FetusDay::get_side() const {
+    Side FetusDay::get_side() const {
         return side;
     }
 
@@ -1300,7 +1353,7 @@ namespace tyme {
         return heaven_stem;
     }
 
-    tyme::HideHeavenStemType HideHeavenStem::get_type() const {
+    HideHeavenStemType HideHeavenStem::get_type() const {
         return type;
     }
 
@@ -1379,14 +1432,14 @@ namespace tyme {
 
     vector<HideHeavenStem> EarthBranch::get_hide_heaven_stems() const {
         auto l = vector<HideHeavenStem>();
-        l.emplace_back(get_hide_heaven_stem_main(), tyme::HideHeavenStemType::MAIN);
+        l.emplace_back(get_hide_heaven_stem_main(), HideHeavenStemType::MAIN);
         optional<HeavenStem> o = get_hide_heaven_stem_middle();
         if (o.has_value()) {
-            l.emplace_back(o.value(), tyme::HideHeavenStemType::MIDDLE);
+            l.emplace_back(o.value(), HideHeavenStemType::MIDDLE);
         }
         o = get_hide_heaven_stem_residual();
         if (o.has_value()) {
-            l.emplace_back(o.value(), tyme::HideHeavenStemType::RESIDUAL);
+            l.emplace_back(o.value(), HideHeavenStemType::RESIDUAL);
         }
         return l;
     }
@@ -1983,7 +2036,7 @@ namespace tyme {
     }
 
     SixtyCycle LunarMonth::get_sixty_cycle() const {
-        return SixtyCycle::from_name(HeavenStem::from_index((year.get_sixty_cycle().get_heaven_stem().get_index() + 1) * 2 + index_in_year).get_name() + EarthBranch::from_index(index_in_year + 2).get_name());
+        return SixtyCycle::from_name(HeavenStem::from_index(year.get_sixty_cycle().get_heaven_stem().get_index() * 2 + month + 1).get_name() + EarthBranch::from_index(month + 1).get_name());
     }
 
     NineStar LunarMonth::get_nine_star() const {
@@ -2211,8 +2264,20 @@ namespace tyme {
         return FetusDay::from_lunar_day(*this);
     }
 
+    PhaseDay LunarDay::get_phase_day() const {
+        const SolarDay today = get_solar_day();
+        const LunarMonth m = month.next(1);
+        Phase p = Phase::from_index(m.get_year(), m.get_month(), 0);
+        SolarDay d = p.get_solar_day();
+        while (d.is_after(today)) {
+            p = p.next(-1);
+            d = p.get_solar_day();
+        }
+        return PhaseDay(p, today.subtract(d));
+    }
+
     Phase LunarDay::get_phase() const {
-        return Phase::from_index(day - 1);
+        return get_phase_day().get_phase();
     }
 
     SixStar LunarDay::get_six_star() const {
@@ -3030,19 +3095,18 @@ namespace tyme {
             }
             type_index++;
         }
-        tyme::HideHeavenStemType type;
+        HideHeavenStemType type;
         switch (type_index) {
             case 1:
-                type = tyme::HideHeavenStemType::MIDDLE;
+                type = HideHeavenStemType::MIDDLE;
                 break;
             case 2:
-                type = tyme::HideHeavenStemType::MAIN;
+                type = HideHeavenStemType::MAIN;
                 break;
             default:
-                type = tyme::HideHeavenStemType::RESIDUAL;
+                type = HideHeavenStemType::RESIDUAL;
         }
-        auto h = HideHeavenStem(heaven_stem_index, type);
-        return HideHeavenStemDay(h, day_index);
+        return HideHeavenStemDay(HideHeavenStem(heaven_stem_index, type), day_index);
     }
 
     int SolarDay::get_index_in_year() const {
@@ -3077,6 +3141,21 @@ namespace tyme {
 
     optional<SolarFestival> SolarDay::get_festival() const {
         return SolarFestival::from_ymd(get_year(), get_month(), get_day());
+    }
+
+    PhaseDay SolarDay::get_phase_day() const {
+        const LunarMonth month = get_lunar_day().get_lunar_month().next(1);
+        Phase p = Phase::from_index(month.get_year(), month.get_month(), 0);
+        SolarDay d = p.get_solar_day();
+        while (d.is_after(*this)) {
+            p = p.next(-1);
+            d = p.get_solar_day();
+        }
+        return PhaseDay(p, subtract(d));
+    }
+
+    Phase SolarDay::get_phase() const {
+        return get_phase_day().get_phase();
     }
 
     SolarTime &SolarTime::operator=(const SolarTime &other) {
@@ -3227,6 +3306,15 @@ namespace tyme {
     LunarHour SolarTime::get_lunar_hour() const {
         const LunarDay d = day.get_lunar_day();
         return LunarHour::from_ymd_hms(d.get_year(), d.get_month(), d.get_day(), hour, minute, second);
+    }
+
+    Phase SolarTime::get_phase() const {
+        const LunarMonth month = get_lunar_hour().get_lunar_day().get_lunar_month().next(1);
+        Phase p = Phase::from_index(month.get_year(), month.get_month(), 0);
+        while (p.get_solar_time().is_after(*this)) {
+            p = p.next(-1);
+        }
+        return p;
     }
 
     SixtyCycle EightChar::get_year() const {
@@ -3381,7 +3469,7 @@ namespace tyme {
         return minute_count;
     }
 
-    bool ChildLimit::get_forward(const EightChar &eight_char, const tyme::Gender gender) {
+    bool ChildLimit::get_forward(const EightChar &eight_char, const Gender gender) {
         // 阳男阴女顺推，阴男阳女逆推
         const bool yang = YinYang::YANG == eight_char.get_year().get_heaven_stem().get_yin_yang();
         const bool man = Gender::MAN == gender;
@@ -3462,7 +3550,7 @@ namespace tyme {
         return Fortune::from_child_limit(child_limit, index * 10);
     }
 
-    ChildLimit ChildLimit::from_solar_time(const SolarTime& birth_time, const tyme::Gender gender) {
+    ChildLimit ChildLimit::from_solar_time(const SolarTime& birth_time, const Gender gender) {
         return ChildLimit(birth_time, gender);
     }
 
@@ -3470,7 +3558,7 @@ namespace tyme {
         return eight_char;
     }
 
-    tyme::Gender ChildLimit::get_gender() const {
+    Gender ChildLimit::get_gender() const {
         return gender;
     }
 

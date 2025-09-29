@@ -425,28 +425,6 @@ namespace tyme {
     };
 
     /**
-     * @brief 月相
-     */
-    class Phase : public LoopTyme {
-    public:
-        ~Phase() override = default;
-
-        static const vector<string> NAMES;
-
-        explicit Phase(const int index) : LoopTyme(NAMES, index) {
-        }
-
-        explicit Phase(const string &name) : LoopTyme(NAMES, name) {
-        }
-
-        static Phase from_index(int index);
-
-        static Phase from_name(const string &name);
-
-        Phase next(int n) const;
-    };
-
-    /**
      * @brief 元（60年=1元）
      */
     class Sixty : public LoopTyme {
@@ -1344,13 +1322,13 @@ namespace tyme {
 
         string get_name() const override;
 
-        explicit HideHeavenStem(const HeavenStem &heaven_stem, const tyme::HideHeavenStemType type) : heaven_stem(heaven_stem), type(type) {
+        explicit HideHeavenStem(const HeavenStem &heaven_stem, const HideHeavenStemType type) : heaven_stem(heaven_stem), type(type) {
         }
 
-        explicit HideHeavenStem(const string &heaven_stem_name, const tyme::HideHeavenStemType type) : heaven_stem(HeavenStem::from_name(heaven_stem_name)), type(type) {
+        explicit HideHeavenStem(const string &heaven_stem_name, const HideHeavenStemType type) : heaven_stem(HeavenStem::from_name(heaven_stem_name)), type(type) {
         }
 
-        explicit HideHeavenStem(const int heaven_stem_index, const tyme::HideHeavenStemType type) : heaven_stem(HeavenStem::from_index(heaven_stem_index)), type(type) {
+        explicit HideHeavenStem(const int heaven_stem_index, const HideHeavenStemType type) : heaven_stem(HeavenStem::from_index(heaven_stem_index)), type(type) {
         }
 
         /**
@@ -1363,7 +1341,7 @@ namespace tyme {
          * @brief 藏干类型
          * @return 藏干类型
          */
-        tyme::HideHeavenStemType get_type() const;
+        HideHeavenStemType get_type() const;
 
     protected:
         /**
@@ -1374,7 +1352,7 @@ namespace tyme {
         /**
          * @brief 藏干类型
          */
-        tyme::HideHeavenStemType type;
+        HideHeavenStemType type;
     };
 
     /**
@@ -1669,6 +1647,16 @@ namespace tyme {
     private:
         static vector<Taboo> get_taboos(vector<string> data, int sup_index, int sub_index, int index);
     };
+
+    /**
+     * @brief 月相第几天
+     */
+    class PhaseDay;
+
+    /**
+     * @brief 月相
+     */
+    class Phase;
 
     /**
      * @brief 干支月
@@ -2548,6 +2536,12 @@ namespace tyme {
         FetusDay get_fetus_day() const;
 
         /**
+         * @brief 月相第几天
+         * @return 月相第几天
+         */
+        PhaseDay get_phase_day() const;
+
+        /**
          * @brief 月相
          * @return 月相
          */
@@ -3375,6 +3369,18 @@ namespace tyme {
          */
         optional<SolarFestival> get_festival() const;
 
+        /**
+         * @brief 月相第几天
+         * @return 月相第几天
+         */
+        PhaseDay get_phase_day() const;
+
+        /**
+         * @brief 月相
+         * @return 月相
+         */
+        Phase get_phase() const;
+
     protected:
         /**
          * @brief 公历月
@@ -3618,6 +3624,12 @@ namespace tyme {
          * @return 农历时辰
          */
         LunarHour get_lunar_hour() const;
+
+        /**
+         * @brief 月相
+         * @return 月相
+         */
+        Phase get_phase() const;
 
     protected:
         /**
@@ -4205,7 +4217,7 @@ namespace tyme {
         explicit FetusDay(const SixtyCycle &sixty_cycle) : AbstractCulture(), fetus_heaven_stem(FetusHeavenStem(sixty_cycle.get_heaven_stem().get_index() % 5)), fetus_earth_branch(FetusEarthBranch(sixty_cycle.get_earth_branch().get_index() % 6)) {
             constexpr int indices[] = {3, 3, 8, 8, 8, 8, 8, 1, 1, 1, 1, 1, 1, 6, 6, 6, 6, 6, 5, 5, 5, 5, 5, 5, 0, 0, 0, 0, 0, -9, -9, -9, -9, -9, -5, -5, -1, -1, -1, -3, -7, -7, -7, -7, -5, 7, 7, 7, 7, 7, 7, 2, 2, 2, 2, 2, 3, 3, 3, 3};
             const int index = indices[sixty_cycle.get_index()];
-            side = index < 0 ? tyme::Side::IN : tyme::Side::OUT;
+            side = index < 0 ? Side::IN : Side::OUT;
             direction = Direction::from_index(index);
         }
 
@@ -4225,7 +4237,7 @@ namespace tyme {
          * @brief 内外
          * @return 内外
          */
-        tyme::Side get_side() const;
+        Side get_side() const;
 
         /**
          * @brief 方位
@@ -4259,7 +4271,7 @@ namespace tyme {
         /**
          * @brief 内外
          */
-        tyme::Side side;
+        Side side;
 
         /**
          * @brief 方位
@@ -4512,10 +4524,10 @@ namespace tyme {
 
         ~ChildLimit() = default;
 
-        explicit ChildLimit(const SolarTime &birth_time, const tyme::Gender gender): eight_char(birth_time.get_lunar_hour().get_eight_char()), gender(gender), forward(get_forward(eight_char, gender)), info(get_info(birth_time, forward)) {
+        explicit ChildLimit(const SolarTime &birth_time, const Gender gender): eight_char(birth_time.get_lunar_hour().get_eight_char()), gender(gender), forward(get_forward(eight_char, gender)), info(get_info(birth_time, forward)) {
         }
 
-        static ChildLimit from_solar_time(const SolarTime &birth_time, tyme::Gender gender);
+        static ChildLimit from_solar_time(const SolarTime &birth_time, Gender gender);
 
         /**
          * @brief 八字
@@ -4527,7 +4539,7 @@ namespace tyme {
          * @brief 性别
          * @return 性别
          */
-        tyme::Gender get_gender() const;
+        Gender get_gender() const;
 
         /**
          * @brief 是否顺推
@@ -4628,7 +4640,7 @@ namespace tyme {
         /**
          * @brief 性别
          */
-        tyme::Gender gender;
+        Gender gender;
 
         /**
          * @brief 顺逆
@@ -4641,7 +4653,7 @@ namespace tyme {
         ChildLimitInfo info;
 
     private:
-        bool get_forward(const EightChar &eight_char, tyme::Gender gender);
+        bool get_forward(const EightChar &eight_char, Gender gender);
 
         ChildLimitInfo get_info(const SolarTime &birth_time, bool forward);
     };
@@ -5144,14 +5156,14 @@ namespace tyme {
         static const vector<string> NAMES;
         static string DATA;
 
-        explicit SolarFestival(const tyme::FestivalType type, const SolarDay &day, const int start_year, const string &data): _type(type), index(stoi(data.substr(1, 2))), day(day), name(NAMES[index]), start_year(start_year) {
+        explicit SolarFestival(const FestivalType type, const SolarDay &day, const int start_year, const string &data): _type(type), index(stoi(data.substr(1, 2))), day(day), name(NAMES[index]), start_year(start_year) {
         }
 
         static optional<SolarFestival> from_index(int year, int index);
 
         static optional<SolarFestival> from_ymd(int year, int month, int day);
 
-        tyme::FestivalType get_type() const;
+        FestivalType get_type() const;
 
         int get_index() const;
 
@@ -5169,7 +5181,7 @@ namespace tyme {
         /**
          * @brief 类型
          */
-        tyme::FestivalType _type;
+        FestivalType _type;
 
         /**
          * @brief 索引
@@ -5202,14 +5214,14 @@ namespace tyme {
         static const vector<string> NAMES;
         static string DATA;
 
-        explicit LunarFestival(const tyme::FestivalType type, const LunarDay &day, optional<SolarTerm> solar_term, const string &data): _type(type), index(stoi(data.substr(1, 2))), day(day), name(NAMES[index]), solar_term(std::move(solar_term)) {
+        explicit LunarFestival(const FestivalType type, const LunarDay &day, optional<SolarTerm> solar_term, const string &data): _type(type), index(stoi(data.substr(1, 2))), day(day), name(NAMES[index]), solar_term(std::move(solar_term)) {
         }
 
         static optional<LunarFestival> from_index(int year, int index);
 
         static optional<LunarFestival> from_ymd(int year, int month, int day);
 
-        tyme::FestivalType get_type() const;
+        FestivalType get_type() const;
 
         int get_index() const;
 
@@ -5227,7 +5239,7 @@ namespace tyme {
         /**
          * @brief 类型
          */
-        tyme::FestivalType _type;
+        FestivalType _type;
 
         /**
          * @brief 索引
@@ -5358,9 +5370,83 @@ namespace tyme {
          */
         bool leap;
     };
-    
-    // 使用using声明简化类型名称
-    using tyme::FestivalType;
-    using tyme::Gender;
+
+    /**
+     * @brief 月相
+     */
+    class Phase : public LoopTyme {
+    public:
+        ~Phase() override = default;
+
+        static const vector<string> NAMES;
+
+        explicit Phase(const int lunar_year, const int lunar_month, const int index) : LoopTyme(NAMES, index) {
+            const LunarMonth m = LunarMonth::from_ym(lunar_year, lunar_month).next(index / static_cast<int>(NAMES.size()));
+            this->lunar_year = m.get_year();
+            this->lunar_month = m.get_month();
+        }
+
+        explicit Phase(const int lunar_year, const int lunar_month, const string &name) : LoopTyme(NAMES, name), lunar_year(lunar_year), lunar_month(lunar_month) {
+        }
+
+        static Phase from_index(int lunar_year, int lunar_month, int index);
+
+        static Phase from_name(int lunar_year, int lunar_month, const string &name);
+
+        Phase next(int n) const;
+
+        /**
+         * @brief 公历时刻
+         * @return 公历时刻
+         */
+        SolarTime get_solar_time() const;
+
+        /**
+         * @brief 公历日
+         * @return 公历日
+         */
+        SolarDay get_solar_day() const;
+    protected:
+        /**
+         * @brief 农历年
+         */
+        int lunar_year;
+
+        /**
+         * @brief 农历月
+         */
+        int lunar_month;
+
+        SolarTime get_start_solar_time() const;
+    };
+
+    /**
+     * @brief 月相第几天
+     */
+    class PhaseDay : public AbstractCulture {
+    public:
+        ~PhaseDay() override = default;
+
+        explicit PhaseDay(const Phase& phase, const int day_index) : phase(phase), day_index(day_index) {
+        }
+
+        Phase get_phase() const;
+
+        int get_day_index() const;
+
+        string to_string() const override;
+
+        string get_name() const override;
+    protected:
+        /**
+         * @brief 月相
+         */
+        Phase phase;
+
+        /**
+         * @brief 天索引
+         */
+        int day_index;
+    };
 }
 #endif
