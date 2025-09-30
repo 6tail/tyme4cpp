@@ -423,13 +423,11 @@ namespace tyme::util {
         }
         v /= XL0[0];
         const double t2 = t * t;
-        v += (-0.0728 - 2.7702 * t - 1.1019 * t2 - 0.0996 * t2 * t) / SECOND_PER_RAD;
-        return v;
+        return v + (-0.0728 - 2.7702 * t - 1.1019 * t2 - 0.0996 * t2 * t) / SECOND_PER_RAD;
     }
 
     double ShouXingUtil::m_lon(const double t, int n) {
         constexpr int obl0 = 2652;
-        // length of XL1[..]
         constexpr int obl[] = {obl0, 893, 204, 12};
         double tn = 1;
         double v = 0;
@@ -453,7 +451,6 @@ namespace tyme::util {
         if (n < 0) {
             n = obl0;
         }
-        // length of XL1
         constexpr int x = 4;
         for (int i = 0; i < x; i++, tn *= t) {
             const vector<double>& f = XL1[i];
@@ -470,15 +467,12 @@ namespace tyme::util {
             }
             v += c * tn;
         }
-        v /= SECOND_PER_RAD;
-        return v;
+        return v / SECOND_PER_RAD;
     }
 
     double ShouXingUtil::gxc_sun_lon(const double t) {
         const double t2 = t * t;
-        const double v = -0.043126 + 628.301955 * t - 0.000002732 * t2;
-        const double e = 0.016708634 - 0.000042037 * t - 0.0000001267 * t2;
-        return -20.49552 * (1 + e * cos(v)) / SECOND_PER_RAD;
+        return -20.49552 * (1 + (0.016708634 - 0.000042037 * t - 0.0000001267 * t2) * cos(-0.043126 + 628.301955 * t - 0.000002732 * t2)) / SECOND_PER_RAD;
     }
 
     double ShouXingUtil::ev(const double t) {
@@ -525,8 +519,7 @@ namespace tyme::util {
 
     double ShouXingUtil::mv(const double t) {
         double v = 8399.71 - 914 * sin(0.7848 + 8328.691425 * t + 0.0001523 * t * t);
-        v -= 179 * sin(2.543 + 15542.7543 * t) + 160 * sin(0.1874 + 7214.0629 * t) + 62 * sin(3.14 + 16657.3828 * t) + 34 * sin(4.827 + 16866.9323 * t) + 22 * sin(4.9 + 23871.4457 * t) + 12 * sin(2.59 + 14914.4523 * t) + 7 * sin(0.23 + 6585.7609 * t) + 5 * sin(0.9 + 25195.624 * t) + 5 * sin(2.32 - 7700.3895 * t) + 5 * sin(3.88 + 8956.9934 * t) + 5 * sin(0.49 + 7771.3771 * t);
-        return v;
+        return v - (179 * sin(2.543 + 15542.7543 * t) + 160 * sin(0.1874 + 7214.0629 * t) + 62 * sin(3.14 + 16657.3828 * t) + 34 * sin(4.827 + 16866.9323 * t) + 22 * sin(4.9 + 23871.4457 * t) + 12 * sin(2.59 + 14914.4523 * t) + 7 * sin(0.23 + 6585.7609 * t) + 5 * sin(0.9 + 25195.624 * t) + 5 * sin(2.32 - 7700.3895 * t) + 5 * sin(3.88 + 8956.9934 * t) + 5 * sin(0.49 + 7771.3771 * t));
     }
 
     double ShouXingUtil::sa_lon_t(const double w) {
@@ -535,8 +528,7 @@ namespace tyme::util {
         v = ev(t);
         t += (w - sa_lon(t, 10)) / v;
         v = ev(t);
-        t += (w - sa_lon(t, -1)) / v;
-        return t;
+        return t + (w - sa_lon(t, -1)) / v;
     }
 
     double ShouXingUtil::msa_lon(const double t, const int mn, const int sn) {
@@ -549,28 +541,24 @@ namespace tyme::util {
         t += (w - msa_lon(t, 3, 3)) / v;
         v = mv(t) - ev(t);
         t += (w - msa_lon(t, 20, 10)) / v;
-        t += (w - msa_lon(t, -1, 60)) / v;
-        return t;
+        return t + (w - msa_lon(t, -1, 60)) / v;
     }
 
     double ShouXingUtil::sa_lon_t2(const double w) {
-        double v = 628.3319653318;
+        const double v = 628.3319653318;
         double t = (w - 1.75347 - M_PI) / v;
         t -= (0.000005297 * t * t + 0.0334166 * cos(4.669257 + 628.307585 * t) + 0.0002061 * cos(2.67823 + 628.307585 * t) * t) / v;
-        t += (w - e_lon(t, 8) - M_PI + (20.5 + 17.2 * sin(2.1824 - 33.75705 * t)) / SECOND_PER_RAD) / v;
-        return t;
+        return t + (w - e_lon(t, 8) - M_PI + (20.5 + 17.2 * sin(2.1824 - 33.75705 * t)) / SECOND_PER_RAD) / v;
     }
 
     double ShouXingUtil::msa_lon_t2(const double w) {
-        double v = 7771.37714500204;
+        const double v = 7771.37714500204;
         double t = (w + 1.08472) / v;
         double t2 = t * t;
         t -= (-0.00003309 * t2 + 0.10976 * cos(0.784758 + 8328.6914246 * t + 0.000152292 * t2) + 0.02224 * cos(0.18740 + 7214.0628654 * t - 0.00021848 * t2) - 0.03342 * cos(4.669257 + 628.307585 * t)) / v;
         t2 = t * t;
         const double l = m_lon(t, 20) - (4.8950632 + 628.3319653318 * t + 0.000005297 * t2 + 0.0334166 * cos(4.669257 + 628.307585 * t) + 0.0002061 * cos(2.67823 + 628.307585 * t) * t + 0.000349 * cos(4.6261 + 1256.61517 * t) - 20.5 / SECOND_PER_RAD);
-        v = 7771.38 - 914 * sin(0.7848 + 8328.691425 * t + 0.0001523 * t2) - 179 * sin(2.543 + 15542.7543 * t) - 160 * sin(0.1874 + 7214.0629 * t);
-        t += (w - l) / v;
-        return t;
+        return t + (w - l) / (7771.38 - 914 * sin(0.7848 + 8328.691425 * t + 0.0001523 * t2) - 179 * sin(2.543 + 15542.7543 * t) - 160 * sin(0.1874 + 7214.0629 * t));
     }
 
     double ShouXingUtil::qi_high(const double w) {

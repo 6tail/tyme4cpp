@@ -5383,7 +5383,7 @@ namespace tyme {
         explicit Phase(const int lunar_year, const int lunar_month, const int index) : LoopTyme(NAMES, index) {
             const LunarMonth m = LunarMonth::from_ym(lunar_year, lunar_month).next(index / static_cast<int>(NAMES.size()));
             this->lunar_year = m.get_year();
-            this->lunar_month = m.get_month();
+            this->lunar_month = m.get_month_with_leap();
         }
 
         explicit Phase(const int lunar_year, const int lunar_month, const string &name) : LoopTyme(NAMES, name), lunar_year(lunar_year), lunar_month(lunar_month) {

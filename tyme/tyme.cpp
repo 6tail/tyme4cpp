@@ -2267,7 +2267,7 @@ namespace tyme {
     PhaseDay LunarDay::get_phase_day() const {
         const SolarDay today = get_solar_day();
         const LunarMonth m = month.next(1);
-        Phase p = Phase::from_index(m.get_year(), m.get_month(), 0);
+        Phase p = Phase::from_index(m.get_year(), m.get_month_with_leap(), 0);
         SolarDay d = p.get_solar_day();
         while (d.is_after(today)) {
             p = p.next(-1);
@@ -3145,7 +3145,7 @@ namespace tyme {
 
     PhaseDay SolarDay::get_phase_day() const {
         const LunarMonth month = get_lunar_day().get_lunar_month().next(1);
-        Phase p = Phase::from_index(month.get_year(), month.get_month(), 0);
+        Phase p = Phase::from_index(month.get_year(), month.get_month_with_leap(), 0);
         SolarDay d = p.get_solar_day();
         while (d.is_after(*this)) {
             p = p.next(-1);
@@ -3310,7 +3310,7 @@ namespace tyme {
 
     Phase SolarTime::get_phase() const {
         const LunarMonth month = get_lunar_hour().get_lunar_day().get_lunar_month().next(1);
-        Phase p = Phase::from_index(month.get_year(), month.get_month(), 0);
+        Phase p = Phase::from_index(month.get_year(), month.get_month_with_leap(), 0);
         while (p.get_solar_time().is_after(*this)) {
             p = p.next(-1);
         }
