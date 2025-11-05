@@ -2099,10 +2099,16 @@ namespace tyme {
         bool is_qi() const;
 
         /**
-         * @brief 儒略日
+         * @brief 儒略日（精确到秒）
          * @return 儒略日
          */
         JulianDay get_julian_day() const;
+
+        /**
+         * @brief 公历日（用于日历）
+         * @return 公历日
+         */
+        SolarDay get_solar_day() const;
 
         /**
          * @brief 年
@@ -2111,7 +2117,7 @@ namespace tyme {
         int get_year() const;
 
         /**
-         * @brief 粗略的儒略日
+         * @brief 儒略日（用于日历，只精确到日中午12:00）
          * @return 儒略日数
          */
         double get_cursory_julian_day() const;
@@ -2123,7 +2129,7 @@ namespace tyme {
         int year = 0;
 
         /**
-         * @brief 粗略的儒略日
+         * @brief 儒略日（用于日历，只精确到日中午12:00）
          */
         double cursory_julian_day = 0;
 
@@ -2431,6 +2437,11 @@ namespace tyme {
     class LunarFestival;
 
     /**
+     * @brief 三柱（年柱、月柱、日柱）
+     */
+    class ThreePillars;
+
+    /**
      * @brief 农历日
      */
     class LunarDay : public AbstractCulture {
@@ -2600,6 +2611,12 @@ namespace tyme {
          * @return 农历传统节日，如果没有则返回空
          */
         optional<LunarFestival> get_festival() const;
+
+        /**
+         * @brief 三柱
+         * @return 三柱
+         */
+        ThreePillars get_three_pillars() const;
 
     protected:
         /**
@@ -3654,16 +3671,74 @@ namespace tyme {
     };
 
     /**
+     * @brief 三柱（年柱、月柱、日柱）
+     */
+    class ThreePillars : public AbstractCulture {
+    public:
+        ~ThreePillars() override = default;
+
+        explicit ThreePillars(const SixtyCycle &year, const SixtyCycle &month, const SixtyCycle &day) : AbstractCulture(), year(year), month(month), day(day) {
+        }
+
+        explicit ThreePillars(const string &year, const string &month, const string &day) : AbstractCulture(), year(SixtyCycle(year)), month(SixtyCycle(month)), day(SixtyCycle(day)) {
+        }
+
+        /**
+         * @brief 年柱
+         * @return 年柱
+         */
+        SixtyCycle get_year() const;
+
+        /**
+         * @brief 月柱
+         * @return 月柱
+         */
+        SixtyCycle get_month() const;
+
+        /**
+         * @brief 日柱
+         * @return 日柱
+         */
+        SixtyCycle get_day() const;
+
+        /**
+         * @brief 公历日列表
+         * @param start_year 开始年(含)，支持1-9999年
+         * @param end_year 结束年(含)，支持1-9999年
+         * @return 公历日列表
+         */
+        vector<SolarDay> get_solar_days(int start_year, int end_year) const;
+
+        string get_name() const override;
+
+    protected:
+        /**
+         * @brief 年柱
+         */
+        SixtyCycle year;
+
+        /**
+         * @brief 月柱
+         */
+        SixtyCycle month;
+
+        /**
+         * @brief 日柱
+         */
+        SixtyCycle day;
+    };
+
+    /**
      * @brief 八字
      */
     class EightChar : public AbstractCulture {
     public:
         ~EightChar() override = default;
 
-        explicit EightChar(const SixtyCycle &year, const SixtyCycle &month, const SixtyCycle &day, const SixtyCycle &hour) : AbstractCulture(), year(year), month(month), day(day), hour(hour) {
+        explicit EightChar(const SixtyCycle &year, const SixtyCycle &month, const SixtyCycle &day, const SixtyCycle &hour) : AbstractCulture(), three_pillars(ThreePillars(year, month, day)), hour(hour) {
         }
 
-        explicit EightChar(const string &year, const string &month, const string &day, const string &hour) : AbstractCulture(), year(SixtyCycle(year)), month(SixtyCycle(month)), day(SixtyCycle(day)), hour(SixtyCycle(hour)) {
+        explicit EightChar(const string &year, const string &month, const string &day, const string &hour) : AbstractCulture(), three_pillars(ThreePillars(year, month, day)), hour(SixtyCycle(hour)) {
         }
 
         /**
@@ -3726,19 +3801,9 @@ namespace tyme {
 
     protected:
         /**
-         * @brief 年柱
+         * @brief 三柱
          */
-        SixtyCycle year;
-
-        /**
-         * @brief 月柱
-         */
-        SixtyCycle month;
-
-        /**
-         * @brief 日柱
-         */
-        SixtyCycle day;
+        ThreePillars three_pillars;
 
         /**
          * @brief 时柱
@@ -3933,7 +3998,7 @@ namespace tyme {
 
         explicit SixtyCycleDay(const SolarDay &solar_day) : AbstractCulture(), solar_day(solar_day) {
             const int solar_year = solar_day.get_year();
-            const SolarDay spring_solar_day = SolarTerm::from_index(solar_year, 3).get_julian_day().get_solar_day();
+            const SolarDay spring_solar_day = SolarTerm::from_index(solar_year, 3).get_solar_day();
             const LunarDay lunar_day = solar_day.get_lunar_day();
             LunarYear lunar_year = lunar_day.get_lunar_month().get_lunar_year();
             if (lunar_year.get_year() == solar_year) {
@@ -3947,7 +4012,7 @@ namespace tyme {
             }
             const SolarTerm term = solar_day.get_term();
             int index = term.get_index() - 3;
-            if (index < 0 && term.get_julian_day().get_solar_day().is_after(spring_solar_day)) {
+            if (index < 0 && term.get_solar_day().is_after(spring_solar_day)) {
                 index += 24;
             }
             this->month = SixtyCycleMonth(SixtyCycleYear::from_year(lunar_year.get_year()), LunarMonth::from_ym(solar_year, 1).get_sixty_cycle().next(static_cast<int>(std::floor(index * 1.0 / 2))));
@@ -4056,6 +4121,12 @@ namespace tyme {
          * @return 干支时辰列表
          */
         vector<SixtyCycleHour> get_hours() const;
+
+        /**
+         * @brief 三柱
+         * @return 三柱
+         */
+        ThreePillars get_three_pillars() const;
 
     protected:
         /**

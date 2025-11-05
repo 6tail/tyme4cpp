@@ -103,6 +103,10 @@ TEST_CASE("eight_char_test_0") {
     REQUIRE("正财" == me.get_ten_star(HeavenStem::from_name("丙")).get_name());
 }
 
+TEST_CASE("eight_char_test_1") {
+    REQUIRE("甲戌 癸酉 甲戌 甲戌" == SolarTime::from_ymd_hms(1034, 10, 2, 20, 0, 0).get_lunar_hour().get_eight_char().to_string());
+}
+
 TEST_CASE("element_test_0") {
     REQUIRE(Element::from_name("木").equals(Element::from_name("金").get_restrain()));
 }
@@ -249,6 +253,17 @@ TEST_CASE("solar_term_test_2") {
     REQUIRE(4 == jq.get_index());
 }
 
+TEST_CASE("solar_term_test_5") {
+    REQUIRE("2024年1月6日 04:49:22" == SolarTerm::from_name(2024, "小寒").get_julian_day().get_solar_time().to_string());
+    REQUIRE("2024年1月6日" == SolarTerm::from_name(2024, "小寒").get_solar_day().to_string());
+}
+
+TEST_CASE("solar_term_test_6") {
+    REQUIRE("1034年10月1日" == SolarTerm::from_name(1034, "寒露").get_solar_day().to_string());
+    REQUIRE("1034年10月3日" == SolarTerm::from_name(1034, "寒露").get_julian_day().get_solar_day().to_string());
+    REQUIRE("1034年10月3日 06:02:28" == SolarTerm::from_name(1034, "寒露").get_julian_day().get_solar_time().to_string());
+}
+
 TEST_CASE("solar_time_test_0") {
     SolarTime time = SolarTime::from_ymd_hms(2023, 1, 1, 13, 5, 20);
     REQUIRE("13:05:20" == time.get_name());
@@ -371,4 +386,8 @@ TEST_CASE("phase_test_8") {
 TEST_CASE("phase_test_11") {
     const Phase phase = SolarTime::from_ymd_hms(2025, 9, 22, 3, 54, 8).get_phase();
     REQUIRE("蛾眉月" == phase.to_string());
+}
+
+TEST_CASE("three_pillars_test_1") {
+    REQUIRE("甲戌 甲戌 甲戌" == SolarDay::from_ymd(1034, 10, 2).get_sixty_cycle_day().get_three_pillars().get_name());
 }
