@@ -117,6 +117,17 @@ namespace tyme {
         return index_of(target_index - index);
     }
 
+    int LoopTyme::steps_back_to(const int target_index) const {
+        const int n = get_size();
+        return -((index - target_index + n) % n);
+    }
+
+    int LoopTyme::steps_close_to(const int target_index) const {
+        const int d1 = steps_to(target_index);
+        const int d2 = steps_back_to(target_index);
+        return d1 <= abs(d2) ? d1 : d2;
+    }
+
     const vector<string> Animal::NAMES = {
         "蛟", "龙", "貉", "兔", "狐", "虎", "豹", "獬", "牛", "蝠", "鼠", "燕", "猪", "獝", "狼", "狗", "彘", "鸡", "乌", "猴", "猿", "犴", "羊", "獐", "马", "鹿", "蛇", "蚓"
     };
@@ -1613,8 +1624,7 @@ namespace tyme {
     }
 
     SixtyCycleMonth SixtyCycleYear::get_first_month() const {
-        const HeavenStem h = HeavenStem::from_index((get_sixty_cycle().get_heaven_stem().get_index() + 1) * 2);
-        return SixtyCycleMonth(*this, SixtyCycle::from_name(h.get_name() + "寅"));
+        return SixtyCycleMonth(*this, SixtyCycle::from_index(year * 12 - 46));
     }
 
     vector<SixtyCycleMonth> SixtyCycleYear::get_months() const {
@@ -1738,27 +1748,20 @@ namespace tyme {
     }
 
     NineStar SixtyCycleDay::get_nine_star() const {
-        const SolarTerm dong_zhi = SolarTerm::from_index(solar_day.get_year(), 0);
-        const SolarDay dong_zhi_solar = dong_zhi.get_solar_day();
-        const SolarDay xia_zhi_solar = dong_zhi.next(12).get_solar_day();
-        const SolarDay dong_zhi_solar2 = dong_zhi.next(24).get_solar_day();
-        const int dong_zhi_index = dong_zhi_solar.get_lunar_day().get_sixty_cycle().get_index();
-        const int xia_zhi_index = xia_zhi_solar.get_lunar_day().get_sixty_cycle().get_index();
-        const int dong_zhi_index2 = dong_zhi_solar2.get_lunar_day().get_sixty_cycle().get_index();
-        const SolarDay solar_shun_bai = dong_zhi_solar.next(dong_zhi_index > 29 ? 60 - dong_zhi_index : -dong_zhi_index);
-        const SolarDay solar_shun_bai2 = dong_zhi_solar2.next(dong_zhi_index2 > 29 ? 60 - dong_zhi_index2 : -dong_zhi_index2);
-        const SolarDay solar_ni_zi = xia_zhi_solar.next(xia_zhi_index > 29 ? 60 - xia_zhi_index : -xia_zhi_index);
-        int offset = 0;
-        if (!solar_day.is_before(solar_shun_bai) && solar_day.is_before(solar_ni_zi)) {
-            offset = solar_day.subtract(solar_shun_bai);
-        } else if (!solar_day.is_before(solar_ni_zi) && solar_day.is_before(solar_shun_bai2)) {
-            offset = 8 - solar_day.subtract(solar_ni_zi);
-        } else if (!solar_day.is_before(solar_shun_bai2)) {
-            offset = solar_day.subtract(solar_shun_bai2);
-        } else if (solar_day.is_before(solar_shun_bai)) {
-            offset = 8 + solar_shun_bai.subtract(solar_day);
+        const int y = solar_day.get_year();
+        const SolarDay winter_solstice = SolarTerm::from_index(y, 0).get_solar_day();
+        const SolarDay summer_solstice = SolarTerm::from_index(y, 12).get_solar_day();
+        const SolarDay next_winter_solstice =SolarTerm::from_index(y + 1, 0).get_solar_day();
+        const SolarDay w = winter_solstice.next(winter_solstice.get_lunar_day().get_sixty_cycle().steps_close_to(0));
+        const SolarDay s = summer_solstice.next(summer_solstice.get_lunar_day().get_sixty_cycle().steps_close_to(0));
+        const SolarDay n = next_winter_solstice.next(next_winter_solstice.get_lunar_day().get_sixty_cycle().steps_close_to(0));
+        if (solar_day.is_before(w)) {
+            return NineStar::from_index(w.subtract(solar_day) - 1);
         }
-        return NineStar::from_index(offset);
+        if (solar_day.is_before(s)) {
+            return NineStar::from_index(solar_day.subtract(w));
+        }
+        return NineStar::from_index(solar_day.is_before(n) ? n.subtract(solar_day) - 1 : solar_day.subtract(n));
     }
 
     Direction SixtyCycleDay::get_jupiter_direction() const {
@@ -1967,10 +1970,13 @@ namespace tyme {
 
     vector<LunarMonth> LunarYear::get_months() const {
         auto l = vector<LunarMonth>();
+        const int leap_month = get_leap_month();
         LunarMonth m = get_first_month();
-        while (m.get_year() == year) {
-            l.push_back(m);
-            m = m.next(1);
+        for (int i = 0; i < 13; i++) {
+            l.push_back(LunarMonth::from_ym(year, i));
+            if (i == leap_month) {
+                l.push_back(LunarMonth::from_ym(year, -i));
+            }
         }
         return l;
     }
@@ -2127,7 +2133,7 @@ namespace tyme {
     }
 
     SixtyCycle LunarMonth::get_sixty_cycle() const {
-        return SixtyCycle::from_name(HeavenStem::from_index(get_lunar_year().get_sixty_cycle().get_heaven_stem().get_index() * 2 + month + 1).get_name() + EarthBranch::from_index(month + 1).get_name());
+        return SixtyCycle::from_index(year * 12 + month - 47);
     }
 
     NineStar LunarMonth::get_nine_star() const {
@@ -2207,10 +2213,9 @@ namespace tyme {
     }
 
     LunarWeek LunarWeek::next(const int n) const {
-        int d = index;
+        int d = index + n;
         LunarMonth m = get_lunar_month();
         if (n > 0) {
-            d += n;
             int weekCount = m.get_week_count(start);
             while (d >= weekCount) {
                 d -= weekCount;
@@ -2221,7 +2226,6 @@ namespace tyme {
                 weekCount = m.get_week_count(start);
             }
         } else if (n < 0) {
-            d += n;
             while (d < 0) {
                 if (m.get_first_day().get_week().get_index() != start) {
                     d -= 1;
@@ -2290,27 +2294,25 @@ namespace tyme {
     }
 
     bool LunarDay::is_before(const LunarDay& other) const {
-        const int a_year = get_year();
-        if (const int b_year = other.get_year(); a_year != b_year) {
-            return a_year < b_year;
+        if (year != other.year) {
+            return year < other.year;
         }
-        const int a_month = get_month();
-        if (const int b_month = other.get_month(); a_month != b_month) {
-            return abs(a_month) < abs(b_month);
+        if (month != other.month) {
+            const int t = abs(other.month);
+            return month == t || abs(month) < t;
         }
-        return day < other.get_day();
+        return day < other.day;
     }
 
     bool LunarDay::is_after(const LunarDay& other) const {
-        const int a_year = get_year();
-        if (const int b_year = other.get_year(); a_year != b_year) {
-            return a_year > b_year;
+        if (year != other.year) {
+            return year > other.year;
         }
-        const int a_month = get_month();
-        if (const int b_month = other.get_month(); a_month != b_month) {
-            return abs(a_month) >= abs(b_month);
+        if (month != other.month) {
+            const int t = abs(month);
+            return t == other.month || t > abs(other.month);
         }
-        return day > other.get_day();
+        return day > other.day;
     }
 
     Week LunarDay::get_week() const {
@@ -2318,8 +2320,7 @@ namespace tyme {
     }
 
     SixtyCycle LunarDay::get_sixty_cycle() const {
-        const int offset = static_cast<int>(get_lunar_month().get_first_julian_day().next(day - 12).get_day());
-        return SixtyCycle::from_name(HeavenStem::from_index(offset).get_name() + EarthBranch::from_index(offset).get_name());
+        return SixtyCycle::from_index(static_cast<int>(get_lunar_month().get_first_julian_day().next(day - 12).get_day()));
     }
 
     Duty LunarDay::get_duty() const {
@@ -2332,27 +2333,26 @@ namespace tyme {
 
     NineStar LunarDay::get_nine_star() const {
         const SolarDay d = get_solar_day();
-        const SolarTerm dong_zhi = SolarTerm::from_index(d.get_year(), 0);
-        const SolarDay dong_zhi_solar = dong_zhi.get_solar_day();
-        const SolarDay xia_zhi_solar = dong_zhi.next(12).get_solar_day();
-        const SolarDay dong_zhi_solar2 = dong_zhi.next(24).get_solar_day();
-        const int dong_zhi_index = dong_zhi_solar.get_lunar_day().get_sixty_cycle().get_index();
-        const int xia_zhi_index = xia_zhi_solar.get_lunar_day().get_sixty_cycle().get_index();
-        const int dong_zhi_index2 = dong_zhi_solar2.get_lunar_day().get_sixty_cycle().get_index();
-        const SolarDay solar_shun_bai = dong_zhi_solar.next(dong_zhi_index > 29 ? 60 - dong_zhi_index : -dong_zhi_index);
-        const SolarDay solar_shun_bai2 = dong_zhi_solar2.next(dong_zhi_index2 > 29 ? 60 - dong_zhi_index2 : -dong_zhi_index2);
-        const SolarDay solar_ni_zi = xia_zhi_solar.next(xia_zhi_index > 29 ? 60 - xia_zhi_index : -xia_zhi_index);
-        int offset = 0;
-        if (!d.is_before(solar_shun_bai) && d.is_before(solar_ni_zi)) {
-            offset = d.subtract(solar_shun_bai);
-        } else if (!d.is_before(solar_ni_zi) && d.is_before(solar_shun_bai2)) {
-            offset = 8 - d.subtract(solar_ni_zi);
-        } else if (!d.is_before(solar_shun_bai2)) {
-            offset = d.subtract(solar_shun_bai2);
-        } else if (d.is_before(solar_shun_bai)) {
-            offset = 8 + solar_shun_bai.subtract(d);
+        const int y = d.get_year();
+        const SolarDay winter_solstice = SolarTerm::from_index(y, 0).get_solar_day();
+        const SolarDay summer_solstice = SolarTerm::from_index(y, 12).get_solar_day();
+        const SolarDay next_winter_solstice =SolarTerm::from_index(y + 1, 0).get_solar_day();
+        // 距冬至最近的甲子日
+        const SolarDay w = winter_solstice.next(winter_solstice.get_lunar_day().get_sixty_cycle().steps_close_to(0));
+        // 距夏至最近的甲子日
+        const SolarDay s = summer_solstice.next(summer_solstice.get_lunar_day().get_sixty_cycle().steps_close_to(0));
+        // 距下个冬至最近的甲子日
+        const SolarDay n = next_winter_solstice.next(next_winter_solstice.get_lunar_day().get_sixty_cycle().steps_close_to(0));
+        // 43210012345678876543210012345
+        //      w        s        n
+        //     冬至     夏至      冬至
+        if (d.is_before(w)) {
+            return NineStar::from_index(w.subtract(d) - 1);
         }
-        return NineStar::from_index(offset);
+        if (d.is_before(s)) {
+            return NineStar::from_index(d.subtract(w));
+        }
+        return NineStar::from_index(d.is_before(n) ? n.subtract(d) - 1 : d.subtract(n));
     }
 
     Direction LunarDay::get_jupiter_direction() const {
@@ -2473,13 +2473,13 @@ namespace tyme {
         if (const LunarDay b_day = other.get_lunar_day(); !a_day.equals(b_day)) {
             return a_day.is_before(b_day);
         }
-        if (hour != other.get_hour()) {
-            return hour < other.get_hour();
+        if (hour != other.hour) {
+            return hour < other.hour;
         }
-        if (minute != other.get_minute()) {
-            return minute < other.get_minute();
+        if (minute != other.minute) {
+            return minute < other.minute;
         }
-        return second < other.get_second();
+        return second < other.second;
     }
 
     bool LunarHour::is_after(const LunarHour &other) const {
@@ -2487,22 +2487,23 @@ namespace tyme {
         if (const LunarDay b_day = other.get_lunar_day(); !a_day.equals(b_day)) {
             return a_day.is_after(b_day);
         }
-        if (hour != other.get_hour()) {
-            return hour > other.get_hour();
+        if (hour != other.hour) {
+            return hour > other.hour;
         }
-        if (minute != other.get_minute()) {
-            return minute > other.get_minute();
+        if (minute != other.minute) {
+            return minute > other.minute;
         }
-        return second > other.get_second();
+        return second > other.second;
     }
 
     SixtyCycle LunarHour::get_sixty_cycle() const {
-        const int earth_branch_index = get_index_in_day() % 12;
-        SixtyCycle d = get_lunar_day().get_sixty_cycle();
+        int e = get_index_in_day();
+        HeavenStem h = get_lunar_day().get_sixty_cycle().get_heaven_stem();
         if (hour >= 23) {
-            d = d.next(1);
+            h = h.next(1);
+            e = 0;
         }
-        return SixtyCycle::from_name(HeavenStem::from_index(d.get_heaven_stem().get_index() % 5 * 2 + earth_branch_index).get_name() + EarthBranch::from_index(earth_branch_index).get_name());
+        return SixtyCycle::from_index(h.get_index() * 12 + e);
     }
 
     TwelveStar LunarHour::get_twelve_star() const {
@@ -2896,10 +2897,9 @@ namespace tyme {
     }
 
     SolarWeek SolarWeek::next(const int n) const {
-        int d = index;
+        int d = index + n;
         SolarMonth m = get_solar_month();
         if (n > 0) {
-            d += n;
             int week_count = m.get_week_count(start);
             while (d >= week_count) {
                 d -= week_count;
@@ -2910,7 +2910,6 @@ namespace tyme {
                 week_count = m.get_week_count(start);
             }
         } else if (n < 0) {
-            d += n;
             while (d < 0) {
                 if (m.get_first_day().get_week().get_index() != start) {
                     d -= 1;
@@ -3016,23 +3015,23 @@ namespace tyme {
     }
 
     bool SolarDay::is_before(const SolarDay &other) const {
-        if (const int b_year = other.get_year(); year != b_year) {
-            return year < b_year;
+        if (year != other.year) {
+            return year < other.year;
         }
-        if (const int b_month = other.get_month(); month != b_month) {
-            return month < b_month;
+        if (month != other.month) {
+            return month < other.month;
         }
-        return day < other.get_day();
+        return day < other.day;
     }
 
     bool SolarDay::is_after(const SolarDay &other) const {
-        if (const int b_year = other.get_year(); year != b_year) {
-            return year > b_year;
+        if (year != other.year) {
+            return year > other.year;
         }
-        if (const int b_month = other.get_month(); month != b_month) {
-            return month > b_month;
+        if (month != other.month) {
+            return month > other.month;
         }
-        return day > other.get_day();
+        return day > other.day;
     }
 
     SolarTerm SolarDay::get_term() const {
@@ -3075,40 +3074,19 @@ namespace tyme {
     }
 
     optional<DogDay> SolarDay::get_dog_day() const {
-        // 夏至
-        const SolarTerm xia_zhi = SolarTerm::from_index(year, 12);
-        SolarDay start = xia_zhi.get_solar_day();
-        // 第3个庚日，即初伏第1天
-        start = start.next(start.get_lunar_day().get_sixty_cycle().get_heaven_stem().steps_to(6) + 20);
-        int days = subtract(start);
-        // 初伏以前
-        if (days < 0) {
+        // 初伏，夏至后第3个庚日
+        const SolarDay d0 = Event::builder().term_heaven_stem(12, 6, 20).build().get_solar_day(year).value();
+        // 中伏，夏至后第4个庚日
+        const SolarDay d1 = Event::builder().term_heaven_stem(12, 6, 30).build().get_solar_day(year).value();
+        // 末伏，立秋后第1个庚日
+        const SolarDay d2 = Event::builder().term_heaven_stem(15, 6, 0).build().get_solar_day(year).value();
+        if (is_before(d0) || is_after(d2.next(9))) {
             return nullopt;
         }
-        if (days < 10) {
-            return DogDay(Dog::from_index(0), days);
+        if (!is_before(d2)) {
+            return DogDay(Dog::from_index(2), subtract(d2));
         }
-        // 第4个庚日，中伏第1天
-        start = start.next(10);
-        days = subtract(start);
-        if (days < 10) {
-            return DogDay(Dog::from_index(1), days);
-        }
-        // 第5个庚日，中伏第11天或末伏第1天
-        start = start.next(10);
-        days = subtract(start);
-        // 立秋
-        if (xia_zhi.next(3).get_solar_day().is_after(start)) {
-            if (days < 10) {
-                return DogDay(Dog::from_index(1), days + 10);
-            }
-            start = start.next(10);
-            days = subtract(start);
-        }
-        if (days >= 10) {
-            return nullopt;
-        }
-        return DogDay(Dog::from_index(2), days);
+        return is_before(d1) ? DogDay(Dog::from_index(0), subtract(d0)) : DogDay(Dog::from_index(1), subtract(d1));
     }
 
     optional<NineDay> SolarDay::get_nine_day() const {
@@ -3124,24 +3102,14 @@ namespace tyme {
     }
 
     optional<PlumRainDay> SolarDay::get_plum_rain_day() const {
-        // 芒种
-        const SolarTerm grain_in_ear = SolarTerm::from_index(year, 11);
-        SolarDay start = grain_in_ear.get_solar_day();
-        // 芒种后的第1个丙日
-        start = start.next(start.get_lunar_day().get_sixty_cycle().get_heaven_stem().steps_to(2));
-
-        // 小暑
-        SolarDay end = grain_in_ear.next(2).get_solar_day();
-        // 小暑后的第1个未日
-        end = end.next(end.get_lunar_day().get_sixty_cycle().get_earth_branch().steps_to(7));
-
+        // 入梅，芒种后第1个丙日
+        const SolarDay start = Event::builder().term_heaven_stem(11, 2, 0).build().get_solar_day(year).value();
+        // 出梅，小暑后第1个未日
+        const SolarDay end = Event::builder().term_earth_branch(13, 7, 0).build().get_solar_day(year).value();
         if (is_before(start) || is_after(end)) {
             return nullopt;
         }
-        if (equals(end)) {
-            return PlumRainDay(PlumRain::from_index(1), 0);
-        }
-        return PlumRainDay(PlumRain::from_index(0), subtract(start));
+        return equals(end) ? PlumRainDay(PlumRain::from_index(1), 0) : PlumRainDay(PlumRain::from_index(0), subtract(start));
     }
 
     HideHeavenStemDay SolarDay::get_hide_heaven_stem_day() const {
@@ -3301,13 +3269,13 @@ namespace tyme {
         if (const SolarDay bDay = other.get_solar_day(); !a_day.equals(bDay)) {
             return a_day.is_before(bDay);
         }
-        if (hour != other.get_hour()) {
-            return hour < other.get_hour();
+        if (hour != other.hour) {
+            return hour < other.hour;
         }
-        if (minute != other.get_minute()) {
-            return minute < other.get_minute();
+        if (minute != other.minute) {
+            return minute < other.minute;
         }
-        return second < other.get_second();
+        return second < other.second;
     }
 
     bool SolarTime::is_after(const SolarTime &other) const {
@@ -3315,13 +3283,13 @@ namespace tyme {
         if (const SolarDay bDay = other.get_solar_day(); !a_day.equals(bDay)) {
             return a_day.is_after(bDay);
         }
-        if (hour != other.get_hour()) {
-            return hour > other.get_hour();
+        if (hour != other.hour) {
+            return hour > other.hour;
         }
-        if (minute != other.get_minute()) {
-            return minute > other.get_minute();
+        if (minute != other.minute) {
+            return minute > other.minute;
         }
-        return second > other.get_second();
+        return second > other.second;
     }
 
     SolarTerm SolarTime::get_term() const {
@@ -3452,38 +3420,20 @@ namespace tyme {
 
     SixtyCycle EightChar::get_fetal_origin() const {
         const SixtyCycle m = get_month();
-        return SixtyCycle::from_name(m.get_heaven_stem().next(1).get_name() + m.get_earth_branch().next(3).get_name());
+        return SixtyCycle::from_index(m.get_heaven_stem().next(1).get_index() * 6 - m.get_earth_branch().next(3).get_index() * 5);
     }
 
     SixtyCycle EightChar::get_fetal_breath() const {
         const SixtyCycle d = get_day();
-        return SixtyCycle::from_name(d.get_heaven_stem().next(5).get_name() + EarthBranch::from_index(13 - d.get_earth_branch().get_index()).get_name());
+        return SixtyCycle::from_index(d.get_heaven_stem().next(5).get_index() * 6 + d.get_earth_branch().get_index() * 5 - 65);
     }
 
     SixtyCycle EightChar::get_own_sign() const {
-        int m = get_month().get_earth_branch().get_index() - 1;
-        if (m < 1) {
-            m += 12;
-        }
-        int h = hour.get_earth_branch().get_index() - 1;
-        if (h < 1) {
-            h += 12;
-        }
-        int offset = m + h;
-        offset = (offset >= 14 ? 26 : 14) - offset;
-        return SixtyCycle::from_name(HeavenStem::from_index((get_year().get_heaven_stem().get_index() + 1) * 2 + offset - 1).get_name() + EarthBranch::from_index(offset + 1).get_name());
+        return SixtyCycle::from_index(get_year().get_heaven_stem().get_index() * 12 + (27 - get_month().get_earth_branch().get_index() - hour.get_earth_branch().get_index()) % 12 + 2);
     }
 
     SixtyCycle EightChar::get_body_sign() const {
-        int offset = get_month().get_earth_branch().get_index() - 1;
-        if (offset < 1) {
-            offset += 12;
-        }
-        offset += hour.get_earth_branch().get_index() + 1;
-        if (offset > 12) {
-            offset -= 12;
-        }
-        return SixtyCycle::from_name(HeavenStem::from_index((get_year().get_heaven_stem().get_index() + 1) * 2 + offset - 1).get_name() + EarthBranch::from_index(offset + 1).get_name());
+        return SixtyCycle::from_index(get_year().get_heaven_stem().get_index() * 12 + (11 + get_month().get_earth_branch().get_index() + hour.get_earth_branch().get_index()) % 12 + 2);
     }
 
     vector<SolarTime> EightChar::get_solar_times(const int start_year, const int end_year) const {
@@ -3846,7 +3796,7 @@ namespace tyme {
     }
 
     const vector<string> LegalHoliday::NAMES = {
-        "元旦节", "春节", "清明节", "劳动节", "端午节", "中秋节", "国庆节", "国庆中秋", "抗战胜利日"
+        "元旦", "春节", "清明节", "劳动节", "端午节", "中秋节", "国庆节", "国庆中秋", "抗战胜利日"
     };
 
     string LegalHoliday::DATA = "2001122900+032001123000+022002010110+002002010210-012002010310-022002020901+032002021001+022002021211+002002021311-012002021411-022002021511-032002021611-042002021711-052002021811-062002042703+042002042803+032002050113+002002050213-012002050313-022002050413-032002050513-042002050613-052002050713-062002092806+032002092906+022002100116+002002100216-012002100316-022002100416-032002100516-042002100616-052002100716-062003010110+002003020111+002003020211-012003020311-022003020411-032003020511-042003020611-052003020711-062003020801-072003020901-082003042603+052003042703+042003050113+002003050213-012003050313-022003050413-032003050513-042003050613-052003050713-062003092706+042003092806+032003100116+002003100216-012003100316-022003100416-032003100516-042003100616-052003100716-062004010110+002004011701+052004011801+042004012211+002004012311-012004012411-022004012511-032004012611-042004012711-052004012811-062004050113+002004050213-012004050313-022004050413-032004050513-042004050613-052004050713-062004050803-072004050903-082004100116+002004100216-012004100316-022004100416-032004100516-042004100616-052004100716-062004100906-082004101006-092005010110+002005010210-012005010310-022005020501+042005020601+032005020911+002005021011-012005021111-022005021211-032005021311-042005021411-052005021511-062005043003+012005050113+002005050213-012005050313-022005050413-032005050513-042005050613-052005050713-062005050803-072005100116+002005100216-012005100316-022005100416-032005100516-042005100616-052005100716-062005100806-072005100906-082005123100+012006010110+002006010210-012006010310-022006012801+012006012911+002006013011-012006013111-022006020111-032006020211-042006020311-052006020411-062006020501-072006042903+022006043003+012006050113+002006050213-012006050313-022006050413-032006050513-042006050613-052006050713-062006093006+012006100116+002006100216-012006100316-022006100416-032006100516-042006100616-052006100716-062006100806-072006123000+022006123100+012007010110+002007010210-012007010310-022007021701+012007021811+002007021911-012007022011-022007022111-032007022211-042007022311-052007022411-062007022501-072007042803+032007042903+022007050113+002007050213-012007050313-022007050413-032007050513-042007050613-052007050713-062007092906+022007093006+012007100116+002007100216-012007100316-022007100416-032007100516-042007100616-052007100716-062007122900+032007123010+022007123110+012008010110+002008020201+042008020301+032008020611+002008020711-012008020811-022008020911-032008021011-042008021111-052008021211-062008040412+002008040512-012008040612-022008050113+002008050213-012008050313-022008050403-032008060714+012008060814+002008060914-012008091315+012008091415+002008091515-012008092706+042008092806+032008092916+022008093016+012008100116+002008100216-012008100316-022008100416-032008100516-042009010110+002009010210-012009010310-022009010400-032009012401+012009012511+002009012611-012009012711-022009012811-032009012911-042009013011-052009013111-062009020101-072009040412+002009040512-012009040612-022009050113+002009050213-012009050313-022009052814+002009052914-012009053014-022009053104-032009092706+042009100116+002009100216-012009100316-022009100416-032009100515-022009100615-032009100715-042009100815-052009101005-072010010110+002010010210-012010010310-022010021311+002010021411-012010021511-022010021611-032010021711-042010021811-052010021911-062010022001-072010022101-082010040312+022010040412+012010040512+002010050113+002010050213-012010050313-022010061204+042010061304+032010061414+022010061514+012010061614+002010091905+032010092215+002010092315-012010092415-022010092505-032010092606+052010100116+002010100216-012010100316-022010100416-032010100516-042010100616-052010100716-062010100906-082011010110+002011010210-012011010310-022011013001+042011020211+012011020311+002011020411-012011020511-022011020611-032011020711-042011020811-052011021201-092011040202+032011040312+022011040412+012011040512+002011043013+012011050113+002011050213-012011060414+022011060514+012011060614+002011091015+022011091115+012011091215+002011100116+002011100216-012011100316-022011100416-032011100516-042011100616-052011100716-062011100806-072011100906-082011123100+012012010110+002012010210-012012010310-022012012101+022012012211+012012012311+002012012411-012012012511-022012012611-032012012711-042012012811-052012012901-062012033102+042012040102+032012040212+022012040312+012012040412+002012042803+032012042913+022012043013+012012050113+002012050203-012012062214+012012062314+002012062414-012012092905+012012093015+002012100116+002012100216-012012100316-022012100416-032012100516-042012100616-052012100716-062012100806-072013010110+002013010210-012013010310-022013010500-042013010600-052013020911+012013021011+002013021111-012013021211-022013021311-032013021411-042013021511-052013021601-062013021701-072013040412+002013040512-012013040612-022013042703+042013042803+032013042913+022013043013+012013050113+002013060804+042013060904+032013061014+022013061114+012013061214+002013091915+002013092015-012013092115-022013092205-032013092906+022013100116+002013100216-012013100316-022013100416-032013100516-042013100616-052013100716-062014010110+002014012601+052014013111+002014020111-012014020211-022014020311-032014020411-042014020511-052014020611-062014020801-082014040512+002014040612-012014040712-022014050113+002014050213-012014050313-022014050403-032014053114+022014060114+012014060214+002014090615+022014090715+012014090815+002014092806+032014100116+002014100216-012014100316-022014100416+002014100516-042014100616-052014100716-062014101106-102015010110+002015010210-012015010310-022015010400-032015021501+042015021811+012015021911+002015022011-012015022111-022015022211-032015022311-042015022411-052015022801-092015040412+012015040512+002015040612-012015050113+002015050213-012015050313-022015062014+002015062114-012015062214-022015090318+002015090418-012015090518-022015090608-032015092615+012015092715+002015100116+002015100216-012015100316-022015100416+002015100516-042015100616-052015100716-062015101006-092016010110+002016010210-012016010310-022016020601+022016020711+012016020811+002016020911-012016021011-022016021111-032016021211-042016021311-052016021401-062016040212+022016040312+012016040412+002016043013+012016050113+002016050213-012016060914+002016061014-012016061114-022016061204-032016091515+002016091615-012016091715-022016091805-032016100116+002016100216-012016100316-022016100416-032016100516-042016100616-052016100716-062016100806-072016100906-082016123110+012017010110+002017010210-012017012201+062017012711+012017012811+002017012911-012017013011-022017013111-032017020111-042017020211-052017020401-072017040102+032017040212+022017040312+012017040412+002017042913+022017043013+012017050113+002017052704+032017052814+022017052914+012017053014+002017093006+012017100116+002017100216-012017100316-022017100415+002017100516-042017100616-052017100716-062017100816-072017123010+022017123110+012018010110+002018021101+052018021511+012018021611+002018021711-012018021811-022018021911-032018022011-042018022111-052018022401-082018040512+002018040612-012018040712-022018040802-032018042803+032018042913+022018043013+012018050113+002018061614+022018061714+012018061814+002018092215+022018092315+012018092415+002018092906+022018093006+012018100116+002018100216-012018100316-022018100416-032018100516-042018100616-052018100716-062018122900+032018123010+022018123110+012019010110+002019020201+032019020301+022019020411+012019020511+002019020611-012019020711-022019020811-032019020911-042019021011-052019040512+002019040612-012019040712-022019042803+032019050113+002019050213-012019050313-022019050413-032019050503-042019060714+002019060814-012019060914-022019091315+002019091415-012019091515-022019092906+022019100116+002019100216-012019100316-022019100416-032019100516-042019100616-052019100716-062019101206-112020010110+002020011901+062020012411+012020012511+002020012611-012020012711-022020012811-032020012911-042020013011-052020013111-062020020111-072020020211-082020040412+002020040512-012020040612-022020042603+052020050113+002020050213-012020050313-022020050413-032020050513-042020050903-082020062514+002020062614-012020062714-022020062804-032020092707+042020100117+002020100216-012020100316-022020100416-032020100516-042020100616-052020100716-062020100816-072020101006-092021010110+002021010210-012021010310-022021020701+052021021111+012021021211+002021021311-012021021411-022021021511-032021021611-042021021711-052021022001-082021040312+012021040412+002021040512-012021042503+062021050113+002021050213-012021050313-022021050413-032021050513-042021050803-072021061214+022021061314+012021061414+002021091805+032021091915+022021092015+012021092115+002021092606+052021100116+002021100216-012021100316-022021100416-032021100516-042021100616-052021100716-062021100906-082022010110+002022010210-012022010310-022022012901+032022013001+022022013111+012022020111+002022020211-012022020311-022022020411-032022020511-042022020611-052022040202+032022040312+022022040412+012022040512+002022042403+072022043013+012022050113+002022050213-012022050313-022022050413-032022050703-062022060314+002022060414-012022060514-022022091015+002022091115-012022091215-022022100116+002022100216-012022100316-022022100416-032022100516-042022100616-052022100716-062022100806-072022100906-082022123110+012023010110+002023010210-012023012111+012023012211+002023012311-012023012411-022023012511-032023012611-042023012711-052023012801-062023012901-072023040512+002023042303+082023042913+022023043013+012023050113+002023050213-012023050313-022023050603-052023062214+002023062314-012023062414-022023062504-032023092915+002023093016+012023100116+002023100216-012023100316-022023100416-032023100516-042023100616-052023100706-062023100806-072023123010+022023123110+012024010110+002024020401+062024021011+002024021111-012024021211-022024021311-032024021411-042024021511-052024021611-062024021711-072024021801-082024040412+002024040512-012024040612-022024040702-032024042803+032024050113+002024050213-012024050313-022024050413-032024050513-042024051103-102024060814+022024060914+012024061014+002024091405+032024091515+022024091615+012024091715+002024092906+022024100116+002024100216-012024100316-022024100416-032024100516-042024100616-052024100716-062024101206-112025010110+002025012601+032025012811+012025012911+002025013011-012025013111-022025020111-032025020211-032025020311-042025020411-052025020801-092025040412+002025040512-012025040612-022025042703+042025050113+002025050213-012025050313-022025050413-032025050513-042025053114+002025060114-012025060214-022025092807+032025100117+002025100217-012025100317-022025100417-032025100517-042025100617-052025100717-062025100817-072025101107-102026010110+002026010210-012026010310-022026010400-032026021401+032026021511+022026021611+012026021711+002026021811-012026021911-022026022011-032026022111-042026022211-052026022311-062026022801-112026040412+012026040512+002026040612-012026050113+002026050213-012026050313-022026050413-032026050513-042026050903-082026061914+002026062014-012026062114-022026092006+112026092515+002026092615-012026092715-022026100116+002026100216-012026100316-022026100416-032026100516-042026100616-052026100716-062026101006-09";
@@ -3959,7 +3909,7 @@ namespace tyme {
     }
 
     const vector<string> SolarFestival::NAMES = {
-        "元旦", "三八妇女节", "植树节", "五一劳动节", "五四青年节", "六一儿童节", "建党节", "八一建军节", "教师节", "国庆节"
+        "元旦", "妇女节", "植树节", "劳动节", "青年节", "儿童节", "建党节", "建军节", "教师节", "国庆节"
     };
 
     string SolarFestival::DATA = "@00001011950@01003081950@02003121979@03005011950@04005041950@05006011950@06007011941@07008011933@08009101985@09010011950";
@@ -4090,9 +4040,9 @@ namespace tyme {
             }
             start = match[0].second;
         }
-        if (month == 12 && day > 28) {
+        if (abs(month) == 12 && day > 28) {
             if (const regex re2("@\\d{2}2"); regex_search(DATA, match, re2)) {
-                if (LunarDay next_day = lunar_day.next(1); next_day.get_month() == 1 && next_day.get_day() == 1) {
+                if (lunar_day.next(1).get_year() != year) {
                     return LunarFestival(FestivalType::EVE, lunar_day, nullopt, match[0]);
                 }
             }
@@ -4171,21 +4121,23 @@ namespace tyme {
         return regex_replace(names[index], regex("金"), "铁");
     }
 
+    void RabByungYear::validate(const int year) {
+        if (year < 1027 || year > 9999) {
+            throw invalid_argument("rab-byung year: " + std::to_string(year));
+        }
+    }
+
     RabByungYear RabByungYear::from_sixty_cycle(const int rab_byung_index, const SixtyCycle& sixty_cycle) {
-        return RabByungYear(rab_byung_index, sixty_cycle);
+        return RabByungYear(rab_byung_index, sixty_cycle.get_heaven_stem().get_element().get_index(), sixty_cycle.get_earth_branch().get_zodiac().get_index());
     }
 
     RabByungYear RabByungYear::from_element_zodiac(const int rab_byung_index, const RabByungElement& element, const Zodiac& zodiac) {
-        for (int i = 0; i < 60; i++) {
-            if (SixtyCycle sixty_cycle = SixtyCycle::from_index(i); sixty_cycle.get_earth_branch().get_zodiac().equals(zodiac) && sixty_cycle.get_heaven_stem().get_element().get_index() == element.get_index()) {
-                return RabByungYear(rab_byung_index, sixty_cycle);
-            }
-        }
-        throw invalid_argument("illegal rab-byung element " + element.to_string() + ", zodiac " + zodiac.to_string());
+        return RabByungYear(rab_byung_index, element.get_index(), zodiac.get_index());
     }
 
     RabByungYear RabByungYear::from_year(const int year) {
-        return RabByungYear((year - 1024) / 60, SixtyCycle::from_index(year - 4));
+        validate(year);
+        return from_sixty_cycle((year - 1024) / 60, SixtyCycle::from_index(year - 4));
     }
 
     int RabByungYear::get_rab_byung_index() const {
@@ -4193,15 +4145,15 @@ namespace tyme {
     }
 
     SixtyCycle RabByungYear::get_sixty_cycle() const {
-        return sixty_cycle;
+        return SixtyCycle::from_index(6 * (element_index * 2 + zodiac_index % 2) - 5 * zodiac_index);
     }
 
     Zodiac RabByungYear::get_zodiac() const {
-        return sixty_cycle.get_earth_branch().get_zodiac();
+        return Zodiac::from_index(zodiac_index);
     }
 
     RabByungElement RabByungYear::get_element() const {
-        return RabByungElement::from_index(sixty_cycle.get_heaven_stem().get_element().get_index());
+        return RabByungElement::from_index(element_index);
     }
 
     string RabByungYear::get_name() const {
@@ -4231,19 +4183,23 @@ namespace tyme {
     }
 
     int RabByungYear::get_year() const {
-        return 1024 + rab_byung_index * 60 + sixty_cycle.get_index();
+        return 1024 + rab_byung_index * 60 + get_sixty_cycle().get_index();
     }
 
     int RabByungYear::get_leap_month() const {
         int y = 1;
         int m = 4;
-        int t = 0;
+        int t = 1;
         const int current_year = get_year();
         while (y < current_year) {
-            const int i = m - 1 + (t % 2 == 0 ? 33 : 32);
-            y = (y * 12 + i) / 12;
-            m = i % 12 + 1;
-            t++;
+            const int i = m + 31 + t;
+            y += 2;
+            m = i - 23;
+            if (i > 35) {
+                y += 1;
+                m -= 12;
+            }
+            t = 1 - t;
         }
         return y == current_year ? m : 0;
     }
@@ -4257,16 +4213,17 @@ namespace tyme {
     }
 
     RabByungMonth RabByungYear::get_first_month() const {
-        return RabByungMonth(*this, 1);
+        return RabByungMonth(get_year(), 1);
     }
 
     vector<RabByungMonth> RabByungYear::get_months() const {
         auto l = vector<RabByungMonth>();
         const int leap_month = get_leap_month();
+        const int y = get_year();
         for (int i = 1; i < 13; i++) {
-            l.emplace_back(*this, i);
+            l.emplace_back(y, i);
             if (i == leap_month) {
-                l.emplace_back(*this, -i);
+                l.emplace_back(y, -i);
             }
         }
         return l;
@@ -4282,24 +4239,29 @@ namespace tyme {
         "神变月", "苦行月", "具香月", "萨嘎月", "作净月", "明净月", "具醉月", "具贤月", "天降月", "持众月", "庄严月", "满意月"
     };
 
+    void RabByungMonth::validate(const int year, const int month) {
+        if (month == 0 || month > 12 || month < -12) {
+            throw invalid_argument("illegal rab-byung month: " + std::to_string(month));
+        }
+        if (year < 1950 || year > 2050) {
+            throw invalid_argument("rab-byung year " + std::to_string(year) + " must between 1950 and 2050");
+        }
+        const bool leap = month < 0;
+        const int m = abs(month);
+        if (year == 1950 && m < 12) {
+            throw invalid_argument("month " + std::to_string(month) + " must be 12 in rab-byung year " + std::to_string(year));
+        }
+        if (leap && m != RabByungYear::from_year(year).get_leap_month()) {
+            throw invalid_argument("illegal leap month " + std::to_string(m) + " in rab-byung year " + std::to_string(year));
+        }
+    }
+
     RabByungMonth RabByungMonth::from_ym(const int year, const int month) {
         return RabByungMonth(year, month);
     }
 
-    RabByungMonth RabByungMonth::from_element_zodiac(const int rab_byung_index, const RabByungElement& element, const Zodiac& zodiac, const int month) {
-        return RabByungMonth(rab_byung_index, element, zodiac, month);
-    }
-
     RabByungYear RabByungMonth::get_rab_byung_year() const {
-        return year;
-    }
-
-    int RabByungMonth::get_year() const {
-        return year.get_year();
-    }
-
-    int RabByungMonth::get_month() const {
-        return month;
+        return RabByungYear::from_year(year);
     }
 
     int RabByungMonth::get_month_with_leap() const {
@@ -4307,7 +4269,15 @@ namespace tyme {
     }
 
     int RabByungMonth::get_index_in_year() const {
-        return index_in_year;
+        int index = month - 1;
+        if (leap) {
+            index += 1;
+        } else {
+            if (const int leap_month = get_rab_byung_year().get_leap_month(); leap_month > 0 && month > leap_month) {
+                index += 1;
+            }
+        }
+        return index;
     }
 
     bool RabByungMonth::is_leap() const {
@@ -4323,15 +4293,15 @@ namespace tyme {
     }
 
     string RabByungMonth::to_string() const {
-        return year.to_string() + get_name();
+        return get_rab_byung_year().to_string() + get_name();
     }
 
     RabByungMonth RabByungMonth::next(const int n) const {
         if (n == 0) {
             return from_ym(get_year(), get_month_with_leap());
         }
-        int m = index_in_year + 1 + n;
-        RabByungYear y = year;
+        int m = get_index_in_year() + 1 + n;
+        RabByungYear y = get_rab_byung_year();
         if (n > 0) {
             int month_count = y.get_month_count();
             while (m > month_count) {
@@ -4395,20 +4365,22 @@ namespace tyme {
     }
 
     RabByungDay RabByungMonth::get_first_day() const {
-        return RabByungDay(*this, 1);
+        return RabByungDay(get_year(), get_month_with_leap(), 1);
     }
 
     vector<RabByungDay> RabByungMonth::get_days() const {
         auto l = vector<RabByungDay>();
         auto miss_days = get_miss_days();
         auto leap_days = get_leap_days();
+        const int y = get_year();
+        const int m = get_month_with_leap();
         for (int i = 1; i < 31; i++) {
             if (find(miss_days.begin(), miss_days.end(), i) != miss_days.end()) {
                 continue;
             }
-            l.emplace_back(*this, i);
+            l.emplace_back(y, m, i);
             if (find(leap_days.begin(), leap_days.end(), i) != leap_days.end()) {
-                l.emplace_back(*this, -i);
+                l.emplace_back(y, m, -i);
             }
         }
         return l;
@@ -4418,12 +4390,27 @@ namespace tyme {
         "初一", "初二", "初三", "初四", "初五", "初六", "初七", "初八", "初九", "初十", "十一", "十二", "十三", "十四", "十五", "十六", "十七", "十八", "十九", "二十", "廿一", "廿二", "廿三", "廿四", "廿五", "廿六", "廿七", "廿八", "廿九", "三十"
     };
 
-    RabByungDay RabByungDay::from_ymd(const int year, const int month, const int day) {
-        return RabByungDay(year, month, day);
+    void RabByungDay::validate(const int year, const int month, const int day) {
+        if (day == 0 || day < -30 || day > 30) {
+            throw invalid_argument("illegal day " + std::to_string(day) + " in " + std::to_string(month));
+        }
+        const RabByungMonth m = RabByungMonth::from_ym(year, month);
+        const bool leap = day < 0;
+        const int d = abs(day);
+        if (leap) {
+            if (vector<int> l = m.get_leap_days(); find(l.begin(), l.end(), d) != l.end()) {
+                throw invalid_argument("illegal leap day " + std::to_string(d) + " in " + m.to_string());
+            }
+        }
+        if (!leap) {
+            if (vector<int> l = m.get_miss_days(); find(l.begin(), l.end(), d) != l.end()) {
+                throw invalid_argument("illegal day " + std::to_string(d) + " in " + m.to_string());
+            }
+        }
     }
 
-    RabByungDay RabByungDay::from_element_zodiac(const int rab_byung_index, const RabByungElement &element, const Zodiac &zodiac, const int month, const int day) {
-        return RabByungDay(rab_byung_index, element, zodiac, month, day);
+    RabByungDay RabByungDay::from_ymd(const int year, const int month, const int day) {
+        return RabByungDay(year, month, day);
     }
 
     RabByungDay RabByungDay::from_solar_day(const SolarDay& solar_day) {
@@ -4451,23 +4438,11 @@ namespace tyme {
                 }
             }
         }
-        return RabByungDay(m, day);
+        return RabByungDay(m.get_year(), m.get_month_with_leap(), day);
     }
 
     RabByungMonth RabByungDay::get_rab_byung_month() const {
-        return month;
-    }
-
-    int RabByungDay::get_year() const {
-        return month.get_year();
-    }
-
-    int RabByungDay::get_month() const {
-        return month.get_month_with_leap();
-    }
-
-    int RabByungDay::get_day() const {
-        return day;
+        return RabByungMonth::from_ym(year, month);
     }
 
     bool RabByungDay::is_leap() const {
@@ -4483,7 +4458,7 @@ namespace tyme {
     }
 
     string RabByungDay::to_string() const {
-        return month.to_string() + get_name();
+        return get_rab_byung_month().to_string() + get_name();
     }
 
     int RabByungDay::subtract(const RabByungDay& target) const {
@@ -4492,8 +4467,9 @@ namespace tyme {
 
     SolarDay RabByungDay::get_solar_day() const {
         RabByungMonth m = RabByungMonth::from_ym(1950, 12);
+        const RabByungMonth cm = get_rab_byung_month();
         int n = 0;
-        while (!month.equals(m)) {
+        while (!m.equals(cm)) {
             n += m.get_day_count();
             m = m.next(1);
         }
@@ -4517,5 +4493,309 @@ namespace tyme {
 
     RabByungDay RabByungDay::next(const int n) const {
         return get_solar_day().next(n).get_rab_byung_day();
+    }
+
+    void Event::validate(const string &data) {
+        if (data.empty()) {
+            throw invalid_argument("illegal event data: empty");
+        }
+        if (data.length() != 9) {
+            throw invalid_argument("illegal event data: " + data);
+        }
+    }
+
+    EventBuilder Event::builder() {
+        return {};
+    }
+
+    optional<Event> Event::from_name(const string &name) {
+        const regex re(EventManager::REGEX + name);
+        if (smatch match; regex_search(EventManager::DATA, match, re) && match.size() > 1) {
+            return Event(name, match.str(1));
+        }
+        return nullopt;
+    }
+
+    vector<Event> Event::from_solar_day(const SolarDay &d) {
+        vector<Event> l;
+        for (const auto &e: all()) {
+            if (auto t = e.get_solar_day(d.get_year()); t && d.equals(t.value())) {
+                l.push_back(e);
+            }
+        }
+        return l;
+    }
+
+    vector<Event> Event::all() {
+        vector<Event> l;
+        const regex re(EventManager::REGEX + ".[^@]+");
+        smatch match;
+        auto start = EventManager::DATA.cbegin();
+        while (regex_search(start, EventManager::DATA.cend(), match, re)) {
+            if (match.size() > 2) {
+                l.emplace_back(match.str(2), match.str(1));
+            }
+            start = match[0].second;
+        }
+        return l;
+    }
+
+    optional<EventType> Event::get_type() const {
+        switch (static_cast<int>(EventManager::CHARS.find(data[1]))) {
+            case 0:
+                return EventType::SOLAR_DAY;
+            case 1:
+                return EventType::SOLAR_WEEK;
+            case 2:
+                return EventType::LUNAR_DAY;
+            case 3:
+                return EventType::TERM_DAY;
+            case 4:
+                return EventType::TERM_HS;
+            case 5:
+                return EventType::TERM_EB;
+            default: ;
+        }
+        return nullopt;
+    }
+
+    string Event::get_name() const {
+        return name;
+    }
+
+    string Event::get_data() const {
+        return data;
+    }
+
+    int Event::get_start_year() const {
+        int n = 0;
+        const int size = static_cast<int>(EventManager::CHARS.length());
+        for (int i = 0; i < 3; ++i) {
+            n = n * size + static_cast<int>(EventManager::CHARS.find(data[6 + i]));
+        }
+        return n;
+    }
+
+    optional<SolarDay> Event::get_solar_day(int year) const {
+        const auto t = get_type();
+        if (!t) {
+            return nullopt;
+        }
+        if (year < get_start_year()) {
+            return nullopt;
+        }
+        optional<SolarDay> d;
+        switch (t.value()) {
+            case EventType::SOLAR_DAY:
+                d = get_solar_day_by_solar_day(year);
+                break;
+            case EventType::SOLAR_WEEK:
+                d = get_solar_day_by_week(year);
+                break;
+            case EventType::LUNAR_DAY:
+                d = get_solar_day_by_lunar_day(year);
+                break;
+            case EventType::TERM_DAY:
+                d = get_solar_day_by_term(year);
+                break;
+            case EventType::TERM_HS:
+                d = get_solar_day_by_term_heaven_stem(year);
+                break;
+            case EventType::TERM_EB:
+                d = get_solar_day_by_term_earth_branch(year);
+                break;
+        }
+        if (!d) {
+            return nullopt;
+        }
+        const int offset = static_cast<int>(EventManager::CHARS.find(data[5])) - 31;
+        return offset == 0 ? d : d->next(offset);
+    }
+
+    optional<SolarDay> Event::get_solar_day_by_solar_day(const int year) const {
+        int y = year;
+        int m = static_cast<int>(EventManager::CHARS.find(data[2])) - 31;
+        if (m > 12) {
+            m = 1;
+            y += 1;
+        }
+        const int d = static_cast<int>(EventManager::CHARS.find(data[3])) - 31;
+        const int delay = static_cast<int>(EventManager::CHARS.find(data[4])) - 31;
+        const SolarMonth month = SolarMonth::from_ym(y, m);
+        if (const int last_day = month.get_day_count(); d > last_day) {
+            if (delay == 0) {
+                return nullopt;
+            }
+            if (delay < 0) {
+                return SolarDay::from_ymd(y, m, d + delay);
+            }
+            return SolarDay::from_ymd(y, m, last_day).next(delay);
+        }
+        return SolarDay::from_ymd(y, m, d);
+    }
+
+    optional<SolarDay> Event::get_solar_day_by_lunar_day(const int year) const {
+        int y = year;
+        int m = static_cast<int>(EventManager::CHARS.find(data[2])) - 31;
+        if (m > 12) {
+            m = 1;
+            y += 1;
+        }
+        const int d = static_cast<int>(EventManager::CHARS.find(data[3])) - 31;
+        const int delay = static_cast<int>(EventManager::CHARS.find(data[4])) - 31;
+        const LunarMonth month = LunarMonth::from_ym(y, m);
+        if (const int last_day = month.get_day_count(); d > last_day) {
+            if (delay == 0) {
+                return nullopt;
+            }
+            if (delay < 0) {
+                return LunarDay::from_ymd(y, m, d + delay).get_solar_day();
+            }
+            return LunarDay::from_ymd(y, m, last_day).get_solar_day().next(delay);
+        }
+        return LunarDay::from_ymd(y, m, d).get_solar_day();
+    }
+
+    optional<SolarDay> Event::get_solar_day_by_week(const int year) const {
+        // 第几个星期
+        const int n = static_cast<int>(EventManager::CHARS.find(data[3])) - 31;
+        if (n == 0) {
+            return nullopt;
+        }
+        const SolarMonth m = SolarMonth::from_ym(year, static_cast<int>(EventManager::CHARS.find(data[2])) - 31);
+        // 星期几
+        const int w = static_cast<int>(EventManager::CHARS.find(data[4])) - 31;
+        if (n > 0) {
+            SolarDay d = m.get_first_day();
+            return d.next(d.get_week().steps_to(w) + 7 * n - 7);
+        }
+        SolarDay d = SolarDay::from_ymd(year, m.get_month(), m.get_day_count());
+        return d.next(d.get_week().steps_back_to(w) + 7 * n + 7);
+    }
+
+    optional<SolarDay> Event::get_solar_day_by_term(const int year) const {
+        const int offset = static_cast<int>(EventManager::CHARS.find(data[4])) - 31;
+        const SolarDay d = SolarTerm::from_index(year, static_cast<int>(EventManager::CHARS.find(data[2])) - 31).get_solar_day();
+        return offset == 0 ? d : d.next(offset);
+    }
+
+    optional<SolarDay> Event::get_solar_day_by_term_heaven_stem(const int year) const {
+        const auto d = get_solar_day_by_term(year);
+        if (!d) return nullopt;
+        return d->next(d->get_lunar_day().get_sixty_cycle().get_heaven_stem().steps_to(static_cast<int>(EventManager::CHARS.find(data[3])) - 31));
+    }
+
+    optional<SolarDay> Event::get_solar_day_by_term_earth_branch(const int year) const {
+        const auto d = get_solar_day_by_term(year);
+        if (!d) return nullopt;
+        return d->next(d->get_lunar_day().get_sixty_cycle().get_earth_branch().steps_to(static_cast<int>(EventManager::CHARS.find(data[3])) - 31));
+    }
+
+    EventBuilder EventBuilder::name(const string &name) {
+        this->_name = name;
+        return *this;
+    }
+
+    char EventBuilder::encode_type(const EventType &type) {
+        int i = 0;
+        switch (type) {
+            case EventType::SOLAR_WEEK:
+                i = 1;
+                break;
+            case EventType::LUNAR_DAY:
+                i = 2;
+                break;
+            case EventType::TERM_DAY:
+                i = 3;
+                break;
+            case EventType::TERM_HS:
+                i = 4;
+                break;
+            case EventType::TERM_EB:
+                i = 5;
+                break;
+            default: ;
+        }
+        return EventManager::CHARS[i];
+    }
+
+    EventBuilder &EventBuilder::content(const EventType type, const int a, const int b, const int c) {
+        data[1] = encode_type(type);
+        data[2] = EventManager::CHARS[31 + a];
+        data[3] = EventManager::CHARS[31 + b];
+        data[4] = EventManager::CHARS[31 + c];
+        return *this;
+    }
+
+    EventBuilder EventBuilder::solar_day(const int solar_month, const int solar_day, const int delay_days) {
+        return content(EventType::SOLAR_DAY, solar_month, solar_day, delay_days);
+    }
+
+    EventBuilder EventBuilder::lunar_day(const int lunar_month, const int lunar_day, const int delay_days) {
+        return content(EventType::LUNAR_DAY, lunar_month, lunar_day, delay_days);
+    }
+
+    EventBuilder EventBuilder::solar_week(const int solar_month, const int week_index, const int week) {
+        return content(EventType::SOLAR_WEEK, solar_month, week_index, week);
+    }
+
+    EventBuilder EventBuilder::term_day(const int term_index, const int delay_days) {
+        return content(EventType::TERM_DAY, term_index, 0, delay_days);
+    }
+
+    EventBuilder EventBuilder::term_heaven_stem(const int term_index, const int heaven_stem_index,
+                                                 const int delay_days) {
+        return content(EventType::TERM_HS, term_index, heaven_stem_index, delay_days);
+    }
+
+    EventBuilder EventBuilder::term_earth_branch(const int term_index, const int earth_branch_index,
+                                                  const int delay_days) {
+        return content(EventType::TERM_EB, term_index, earth_branch_index, delay_days);
+    }
+
+    EventBuilder EventBuilder::start_year(const int year) {
+        const int size = static_cast<int>(EventManager::CHARS.length());
+        int n = year;
+        for (int i = 0; i < 3; ++i) {
+            data[8 - i] = EventManager::CHARS[n % size];
+            n /= size;
+        }
+        return *this;
+    }
+
+    EventBuilder EventBuilder::offset(const int days) {
+        data[5] = EventManager::CHARS[31 + days];
+        return *this;
+    }
+
+    Event EventBuilder::build() const {
+        return Event(_name, string(data.data(), data.size()));
+    }
+
+    const string EventManager::CHARS = "0123456789ABCDEFGHIJKLMNOPQRSTU_VWXYZabcdefghijklmnopqrstuvwxyz";
+    const string EventManager::REGEX = "(@[0-9A-Za-z_]{8})";
+    string EventManager::DATA;
+
+    void EventManager::remove(const string &name) {
+        const regex re(REGEX + name);
+        DATA = regex_replace(DATA, re, "");
+    }
+
+    void EventManager::save_or_update(const string &name, const string &data) {
+        if (const regex re(REGEX + name); regex_search(DATA, re)) {
+            DATA = regex_replace(DATA, re, data);
+        } else {
+            DATA += data;
+        }
+    }
+
+    void EventManager::update(const string &name, const Event &event) {
+        const string data = event.get_data() + (event.get_name().empty() ? name : event.get_name());
+        save_or_update(name, data);
+    }
+
+    void EventManager::update_data(const string &name, const string &data) {
+        Event::validate(data);
+        save_or_update(name, data);
     }
 }

@@ -13,6 +13,7 @@
 #include <optional>
 #include <cmath>
 #include <regex>
+#include <utility>
 #include "util.h"
 
 using namespace std;
@@ -59,6 +60,18 @@ namespace tyme {
     enum class YinYang {
         YIN = 0,
         YANG = 1
+    };
+
+    /**
+     * @brief 事件类型
+     */
+    enum class EventType {
+        SOLAR_DAY = 0,
+        SOLAR_WEEK = 1,
+        LUNAR_DAY = 2,
+        TERM_DAY = 3,
+        TERM_HS = 4,
+        TERM_EB = 5
     };
 
     /**
@@ -342,11 +355,25 @@ namespace tyme {
         int next_index(int n) const;
 
         /**
-         * @brief 到目标索引的步数
+         * @brief 到目标索引的步数（从左往右顺序）
          * @param target_index 目标索引
-         * @return 步数
+         * @return 步数（>=0）
          */
         int steps_to(int target_index) const;
+
+        /**
+         * @brief 到目标索引的步数（从右往左逆序）
+         * @param target_index 目标索引
+         * @return 步数（<=0）
+         */
+        int steps_back_to(int target_index) const;
+
+        /**
+         * @brief 到目标索引的最少步数
+         * @param target_index 目标索引
+         * @return 步数（从左往右顺序>=0，从右往左逆序<=0）
+         */
+        int steps_close_to(int target_index) const;
 
     protected:
         /**
@@ -4687,11 +4714,19 @@ namespace tyme {
     public:
         ~RabByungYear() override = default;
 
-        explicit RabByungYear(const int rab_byung_index, const SixtyCycle& sixty_cycle): AbstractCulture(), rab_byung_index(rab_byung_index), sixty_cycle(sixty_cycle) {
+        explicit RabByungYear(const int rab_byung_index, const int element_index, const int zodiac_index): AbstractCulture(), rab_byung_index(rab_byung_index), element_index(element_index), zodiac_index(zodiac_index) {
             if (rab_byung_index < 0 || rab_byung_index > 150) {
                 throw invalid_argument("illegal rab-byung index: " + std::to_string(rab_byung_index));
             }
+            if (element_index < 0 || element_index >= RabByungElement::NAMES.size()) {
+                throw invalid_argument("illegal element index: " + std::to_string(element_index));
+            }
+            if (zodiac_index < 0 || zodiac_index >= Zodiac::NAMES.size()) {
+                throw invalid_argument("illegal zodiac index: " + std::to_string(zodiac_index));
+            }
         }
+
+        static void validate(int year);
 
         static RabByungYear from_sixty_cycle(int rab_byung_index, const SixtyCycle& sixty_cycle);
 
@@ -4769,15 +4804,20 @@ namespace tyme {
         int rab_byung_index;
 
         /**
-         * @brief 干支
+         * @brief 五行索引，从0开始
          */
-        SixtyCycle sixty_cycle;
+        int element_index;
+
+        /**
+         * @brief 生肖索引，从0开始
+         */
+        int zodiac_index;
     };
 
     /**
      * @brief 藏历月，仅支持藏历1950年十二月至藏历2050年十二月
      */
-    class RabByungMonth : public AbstractCulture {
+    class RabByungMonth : public MonthUnit {
     public:
         ~RabByungMonth() override = default;
 
@@ -4785,7 +4825,7 @@ namespace tyme {
         static const vector<string> ALIAS;
         static std::map<int, vector<int>> DAYS;
 
-        explicit RabByungMonth(const RabByungYear& year, const int month): AbstractCulture(), year(year), month(month), leap(month < 0) {
+        explicit RabByungMonth(const int year, const int month): MonthUnit(year, abs(month)), leap(month < 0) {
             static once_flag flag;
             call_once(flag, [] {
                 int y = 1950;
@@ -4807,56 +4847,18 @@ namespace tyme {
                     m = 0;
                 }
             });
-            if (month == 0 || month > 12 || month < -12) {
-                throw invalid_argument("illegal rab-byung month: " + std::to_string(month));
-            }
-            const int y = year.get_year();
-            if (y < 1950 || y > 2050) {
-                throw invalid_argument("rab-byung year " + std::to_string(month) + " must between 1950 and 2050");
-            }
-            const int m = abs(month);
-            if (y == 1950 && m < 12) {
-                throw invalid_argument("month " + std::to_string(month) + " must be 12 in rab-byung year " + std::to_string(y));
-            }
-            const int leap_month = year.get_leap_month();
-            if (leap && m != leap_month) {
-                throw invalid_argument("illegal leap month " + std::to_string(m) + " in rab-byung year " + std::to_string(y));
-            }
-            // 位于当年的索引
-            int index = m - 1;
-            if (leap || (0 < leap_month && leap_month < m)) {
-                index += 1;
-            }
-            index_in_year = index;
+            validate(year, month);
         }
 
-        explicit RabByungMonth(const int year, const int month): RabByungMonth(RabByungYear::from_year(year), month) {
-        }
-
-        explicit RabByungMonth(const int rab_byung_index, const RabByungElement& element, const Zodiac& zodiac, const int month): RabByungMonth(RabByungYear::from_element_zodiac(rab_byung_index, element, zodiac), month) {
-        }
+        static void validate(int year, int month);
 
         static RabByungMonth from_ym(int year, int month);
-
-        static RabByungMonth from_element_zodiac(int rab_byung_index, const RabByungElement& element, const Zodiac& zodiac, int month);
 
         /**
          * @brief 藏历年
          * @return 藏历年
          */
         RabByungYear get_rab_byung_year() const;
-
-        /**
-         * @brief 年
-         * @return 年
-         */
-        int get_year() const;
-
-        /**
-         * @brief 月
-         * @return 月
-         */
-        int get_month() const;
 
         /**
          * @brief 月
@@ -4927,24 +4929,9 @@ namespace tyme {
         vector<RabByungDay> get_days() const;
     protected:
         /**
-         * @brief 藏历年
-         */
-        RabByungYear year;
-
-        /**
-         * @brief 月
-         */
-        int month;
-
-        /**
          * @brief 是否闰月
          */
         bool leap;
-
-        /**
-         * @brief 位于当年的索引，0-12
-         */
-        int index_in_year;
     };
     
     /**
@@ -5066,38 +5053,19 @@ namespace tyme {
     /**
      * @brief 藏历日，仅支持藏历1950年十二月初一（公历1951年1月8日）至藏历2050年十二月三十（公历2051年2月11日）
      */
-    class RabByungDay : public AbstractCulture {
+    class RabByungDay : public DayUnit {
     public:
         ~RabByungDay() override = default;
 
         static const vector<string> NAMES;
 
-        explicit RabByungDay(const RabByungMonth& month, const int day): AbstractCulture(), month(month), day(day), leap(day < 0) {
-            if (day == 0 || day < -30 || day > 30) {
-                throw invalid_argument("illegal day " + std::to_string(day) + " in " + month.to_string());
-            }
-            const int d = abs(day);
-            if (leap) {
-                if (vector<int> l = month.get_leap_days(); find(l.begin(), l.end(), d) != l.end()) {
-                    throw invalid_argument("illegal leap day " + std::to_string(d) + " in " + month.to_string());
-                }
-            }
-            if (!leap) {
-                if (vector<int> l = month.get_miss_days(); find(l.begin(), l.end(), d) != l.end()) {
-                    throw invalid_argument("illegal day " + std::to_string(d) + " in " + month.to_string());
-                }
-            }
+        explicit RabByungDay(const int year, const int month, const int day): DayUnit(year, month, abs(day)), leap(day < 0) {
+            validate(year, month, day);
         }
 
-        explicit RabByungDay(const int year, const int month, const int day): RabByungDay(RabByungMonth(year, month), day) {
-        }
-
-        explicit RabByungDay(const int rab_byung_index, const RabByungElement& element, const Zodiac& zodiac, const int month, const int day): RabByungDay(RabByungMonth(rab_byung_index, element, zodiac, month), day) {
-        }
+        static void validate(int year, int month, int day);
 
         static RabByungDay from_ymd(int year, int month, int day);
-
-        static RabByungDay from_element_zodiac(int rab_byung_index, const RabByungElement& element, const Zodiac& zodiac, int month, int day);
 
         static RabByungDay from_solar_day(const SolarDay& solar_day);
 
@@ -5106,24 +5074,6 @@ namespace tyme {
          * @return 藏历月
          */
         RabByungMonth get_rab_byung_month() const;
-
-        /**
-         * @brief 年
-         * @return 年
-         */
-        int get_year() const;
-
-        /**
-         * @brief 月
-         * @return 月
-         */
-        int get_month() const;
-
-        /**
-         * @brief 日
-         * @return 日
-         */
-        int get_day() const;
 
         /**
          * @brief 是否闰日
@@ -5156,16 +5106,6 @@ namespace tyme {
 
         RabByungDay next(int n) const;
     protected:
-        /**
-         * @brief 藏历月
-         */
-        RabByungMonth month;
-
-        /**
-         * @brief 日
-         */
-        int day;
-
         /**
          * @brief 是否闰日
          */
@@ -5248,6 +5188,242 @@ namespace tyme {
          * @brief 天索引
          */
         int day_index;
+    };
+
+    class EventBuilder;
+
+    /**
+     * @brief 事件
+     */
+    class Event : public AbstractCulture {
+    public:
+        ~Event() override = default;
+
+        explicit Event(string name, const string& data): name(std::move(name)), data(data) {
+            validate(data);
+        }
+
+        static void validate(const string &data);
+
+        static EventBuilder builder();
+
+        static optional<Event> from_name(const string &name);
+
+        /**
+         * @brief 指定公历日的事件列表
+         * @param d 公历日
+         * @return 事件列表
+         */
+        static vector<Event> from_solar_day(const SolarDay &d);
+
+        /**
+         * @brief 所有事件
+         * @return 事件列表
+         */
+        static vector<Event> all();
+
+        /**
+         * @brief 事件类型
+         * @return 事件类型
+         */
+        optional<EventType> get_type() const;
+
+        /**
+         * @brief 名称
+         * @return 名称
+         */
+        string get_name() const override;
+
+        /**
+         * @brief 数据
+         * @return 数据
+         */
+        string get_data() const;
+
+        /**
+         * @brief 起始年
+         * @return 年
+         */
+        int get_start_year() const;
+
+        /**
+         * @brief 公历日
+         * @param year 年
+         * @return 公历日，如果当年没有该事件，返回nullopt
+         */
+        optional<SolarDay> get_solar_day(int year) const;
+
+    protected:
+        friend class EventBuilder;
+
+        optional<SolarDay> get_solar_day_by_solar_day(int year) const;
+
+        optional<SolarDay> get_solar_day_by_lunar_day(int year) const;
+
+        optional<SolarDay> get_solar_day_by_week(int year) const;
+
+        optional<SolarDay> get_solar_day_by_term(int year) const;
+
+        optional<SolarDay> get_solar_day_by_term_heaven_stem(int year) const;
+
+        optional<SolarDay> get_solar_day_by_term_earth_branch(int year) const;
+
+        /**
+         * @brief 名称
+         */
+        string name;
+
+        /**
+         * @brief 数据
+         */
+        string data;
+    };
+
+    /**
+     * @brief 事件构造器
+     */
+    class EventBuilder {
+    public:
+        EventBuilder() = default;
+
+        EventBuilder name(const string &name);
+
+        /**
+         * @brief 公历日
+         * @param solar_month 公历月（1至12）
+         * @param solar_day 公历日（1至31）
+         * @param delay_days 顺延天数，例如生日在2月29，非闰年没有2月29，是+1天，还是-1天（最远支持-31至31天）
+         * @return 事件构建器
+         */
+        EventBuilder solar_day(int solar_month, int solar_day, int delay_days);
+
+        /**
+         * @brief 农历日
+         * @param lunar_month 农历月（-12至-1，1至12，闰月为负）
+         * @param lunar_day 农历日（1至30）
+         * @param delay_days 顺延天数，例如生日在某月的三十，但下一年当月可能只有29天，是+1天，还是-1天（最远支持-31至31天）
+         * @return 事件构建器
+         */
+        EventBuilder lunar_day(int lunar_month, int lunar_day, int delay_days);
+
+        /**
+         * @brief 公历第几个星期几
+         * @param solar_month 公历月（1至12）
+         * @param week_index 第几个星期（1为第1个星期，-1为倒数第1个星期）
+         * @param week 星期几（0至6，0代表星期天，1代表星期一）
+         * @return 事件构建器
+         */
+        EventBuilder solar_week(int solar_month, int week_index, int week);
+
+        /**
+         * @brief 节气
+         * @param term_index 节气索引（0至23）
+         * @param delay_days 顺延天数（最远支持-31至31天）
+         * @return 事件构建器
+         */
+        EventBuilder term_day(int term_index, int delay_days);
+
+        /**
+         * @brief 节气天干
+         * @param term_index 节气索引（0至23）
+         * @param heaven_stem_index 天干索引（0至9）
+         * @param delay_days 顺延天数（最远支持-31至31天）
+         * @return 事件构建器
+         */
+        EventBuilder term_heaven_stem(int term_index, int heaven_stem_index, int delay_days);
+
+        /**
+         * @brief 节气地支
+         * @param term_index 节气索引（0至23）
+         * @param earth_branch_index 地支索引（0至11）
+         * @param delay_days 顺延天数（最远支持-31至31天）
+         * @return 事件构建器
+         */
+        EventBuilder term_earth_branch(int term_index, int earth_branch_index, int delay_days);
+
+        /**
+         * @brief 起始年
+         * @param year 年
+         * @return 事件构造器
+         */
+        EventBuilder start_year(int year);
+
+        /**
+         * @brief 偏移天数
+         * @param days 天数（最远支持-31至31天）
+         * @return 事件构造器
+         */
+        EventBuilder offset(int days);
+
+        /**
+         * @brief 生成事件
+         * @return 事件
+         */
+        Event build() const;
+
+    protected:
+        EventBuilder &content(EventType type, int a, int b, int c);
+
+        /**
+         * @brief 编码事件类型
+         * @param type 事件类型
+         * @return 编码
+         */
+        static char encode_type(const EventType &type);
+
+        /**
+         * @brief 事件名称
+         */
+        string _name;
+
+        /**
+         * @brief 事件数据
+         */
+        array<char, 9> data = {'@', '_', '_', '_', '_', '_', '0', '0', '0'};
+    };
+
+    /**
+     * @brief 事件管理器
+     */
+    class EventManager {
+    public:
+        /**
+         * @brief 有效字符
+         */
+        static const string CHARS;
+
+        /**
+         * @brief 数据匹配的正则表达式
+         */
+        static const string REGEX;
+
+        /**
+         * @brief 全量事件数据
+         */
+        static string DATA;
+
+        /**
+         * @brief 删除事件
+         * @param name 名称
+         */
+        static void remove(const string &name);
+
+        /**
+         * @brief 新增或更新事件
+         * @param name 名称
+         * @param event 事件
+         */
+        static void update(const string &name, const Event &event);
+
+        /**
+         * @brief 新增或更新事件
+         * @param name 名称
+         * @param data 事件数据
+         */
+        static void update_data(const string &name, const string &data);
+
+    protected:
+        static void save_or_update(const string &name, const string &data);
     };
 }
 #endif
