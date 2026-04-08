@@ -44,6 +44,3 @@
 cmake-build-debug/
 cmake-build-release/
 .idea/
-/REFACTORING_PLAN.md
-/run_demo.bat
-/run_tests.bat
