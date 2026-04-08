@@ -14,6 +14,7 @@
 #include <cmath>
 #include <regex>
 #include <utility>
+#include <array>
 #include "util.h"
 
 using namespace std;
@@ -4718,10 +4719,10 @@ namespace tyme {
             if (rab_byung_index < 0 || rab_byung_index > 150) {
                 throw invalid_argument("illegal rab-byung index: " + std::to_string(rab_byung_index));
             }
-            if (element_index < 0 || element_index >= RabByungElement::NAMES.size()) {
+            if (element_index < 0 || static_cast<size_t>(element_index) >= RabByungElement::NAMES.size()) {
                 throw invalid_argument("illegal element index: " + std::to_string(element_index));
             }
-            if (zodiac_index < 0 || zodiac_index >= Zodiac::NAMES.size()) {
+            if (zodiac_index < 0 || static_cast<size_t>(zodiac_index) >= Zodiac::NAMES.size()) {
                 throw invalid_argument("illegal zodiac index: " + std::to_string(zodiac_index));
             }
         }
