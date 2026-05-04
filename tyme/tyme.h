@@ -12,7 +12,6 @@
 #include <map>
 #include <optional>
 #include <cmath>
-#include <regex>
 #include <utility>
 #include <array>
 #include "util.h"
@@ -3785,7 +3784,7 @@ namespace tyme {
             if (index < 0 && term.get_solar_day().is_after(spring_solar_day)) {
                 index += 24;
             }
-            this->month = SixtyCycleMonth(SixtyCycleYear::from_year(lunar_year.get_year()), LunarMonth::from_ym(solar_year, 1).get_sixty_cycle().next(static_cast<int>(std::floor(index * 1.0 / 2))));
+            this->month = SixtyCycleMonth(SixtyCycleYear::from_year(lunar_year.get_year()), LunarMonth::from_ym(solar_year, 1).get_sixty_cycle().next(static_cast<int>(floor(index * 1.0 / 2))));
             this->day = lunar_day.get_sixty_cycle();
         }
 
@@ -3947,7 +3946,7 @@ namespace tyme {
             if (solar_time.get_hour() >= 23) {
                 d = d.next(1);
             }
-            day = SixtyCycleDay(solar_time.get_solar_day(), SixtyCycleMonth(SixtyCycleYear::from_year(lunar_year.get_year()), LunarMonth::from_ym(solar_year, 1).get_sixty_cycle().next(static_cast<int>(std::floor(index * 0.5)))), d);
+            day = SixtyCycleDay(solar_time.get_solar_day(), SixtyCycleMonth(SixtyCycleYear::from_year(lunar_year.get_year()), LunarMonth::from_ym(solar_year, 1).get_sixty_cycle().next(static_cast<int>(floor(index * 0.5)))), d);
             hour = lunar_hour.get_sixty_cycle();
         }
 
@@ -4829,7 +4828,7 @@ namespace tyme {
         ~RabByungMonth() override = default;
 
         static const vector<string> ALIAS;
-        static std::map<int, vector<int>> DAYS;
+        static map<int, vector<int>> DAYS;
 
         explicit RabByungMonth(const int year, const int month): MonthUnit(year, abs(month)), leap(month < 0) {
             static once_flag flag;

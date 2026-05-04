@@ -1,15 +1,12 @@
 #include <string>
+#include <map>
+#include <optional>
+#include <cmath>
+#include <array>
 #include <regex>
 #include <iostream>
 #include <sstream>
-#include <optional>
-#include <cmath>
-#ifndef M_PI
-#define M_PI 3.14159265358979323846
-#endif
 #include "tyme.h"
-
-using std::ceil;
 
 using namespace std;
 
@@ -2075,7 +2072,7 @@ namespace tyme {
         return leap;
     }
 
-    int LunarMonth::get_week_count(int start) const {
+    int LunarMonth::get_week_count(const int start) const {
         return static_cast<int>(ceil((index_of(get_first_julian_day().get_week().get_index() - start, 7) + get_day_count()) / 7.0));
     }
 
