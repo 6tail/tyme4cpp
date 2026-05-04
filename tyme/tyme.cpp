@@ -43,6 +43,10 @@ namespace tyme {
         return day;
     }
 
+    const vector<string> WeekUnit::NAMES = {
+        "第一周", "第二周", "第三周", "第四周", "第五周", "第六周"
+    };
+
     int WeekUnit::get_index() const {
         return index;
     }
@@ -1082,6 +1086,10 @@ namespace tyme {
         "一", "二", "三", "四", "五", "六", "七", "八", "九"
     };
 
+    const vector<string> NineStar::COLORS = {
+        "白", "黑", "碧", "绿", "黄", "白", "赤", "白", "紫"
+    };
+
     NineStar NineStar::from_index(const int index) {
         return NineStar(index);
     }
@@ -1095,13 +1103,11 @@ namespace tyme {
     }
 
     string NineStar::get_color() const {
-        string colors[9] = {"白", "黑", "碧", "绿", "黄", "白", "赤", "白", "紫"};
-        return colors[index];
+        return COLORS[index];
     }
 
     Element NineStar::get_element() const {
-        const int indices[9] = {4, 2, 0, 0, 2, 3, 3, 2, 1};
-        return Element::from_index(indices[index]);
+        return get_direction().get_element();
     }
 
     Dipper NineStar::get_dipper() const {
@@ -1748,20 +1754,7 @@ namespace tyme {
     }
 
     NineStar SixtyCycleDay::get_nine_star() const {
-        const int y = solar_day.get_year();
-        const SolarDay winter_solstice = SolarTerm::from_index(y, 0).get_solar_day();
-        const SolarDay summer_solstice = SolarTerm::from_index(y, 12).get_solar_day();
-        const SolarDay next_winter_solstice =SolarTerm::from_index(y + 1, 0).get_solar_day();
-        const SolarDay w = winter_solstice.next(winter_solstice.get_lunar_day().get_sixty_cycle().steps_close_to(0));
-        const SolarDay s = summer_solstice.next(summer_solstice.get_lunar_day().get_sixty_cycle().steps_close_to(0));
-        const SolarDay n = next_winter_solstice.next(next_winter_solstice.get_lunar_day().get_sixty_cycle().steps_close_to(0));
-        if (solar_day.is_before(w)) {
-            return NineStar::from_index(w.subtract(solar_day) - 1);
-        }
-        if (solar_day.is_before(s)) {
-            return NineStar::from_index(solar_day.subtract(w));
-        }
-        return NineStar::from_index(solar_day.is_before(n) ? n.subtract(solar_day) - 1 : solar_day.subtract(n));
+        return solar_day.get_nine_star();
     }
 
     Direction SixtyCycleDay::get_jupiter_direction() const {
@@ -2185,10 +2178,6 @@ namespace tyme {
         return LunarDay::from_ymd(year, get_month_with_leap(), 1);
     }
 
-    const vector<string> LunarWeek::NAMES = {
-        "第一周", "第二周", "第三周", "第四周", "第五周", "第六周"
-    };
-
     void LunarWeek::validate(const int year, const int month, const int index, const int start) {
         WeekUnit::validate(index, start);
         if (const LunarMonth m = LunarMonth::from_ym(year, month); index >= m.get_week_count(start)) {
@@ -2332,27 +2321,7 @@ namespace tyme {
     }
 
     NineStar LunarDay::get_nine_star() const {
-        const SolarDay d = get_solar_day();
-        const int y = d.get_year();
-        const SolarDay winter_solstice = SolarTerm::from_index(y, 0).get_solar_day();
-        const SolarDay summer_solstice = SolarTerm::from_index(y, 12).get_solar_day();
-        const SolarDay next_winter_solstice =SolarTerm::from_index(y + 1, 0).get_solar_day();
-        // 距冬至最近的甲子日
-        const SolarDay w = winter_solstice.next(winter_solstice.get_lunar_day().get_sixty_cycle().steps_close_to(0));
-        // 距夏至最近的甲子日
-        const SolarDay s = summer_solstice.next(summer_solstice.get_lunar_day().get_sixty_cycle().steps_close_to(0));
-        // 距下个冬至最近的甲子日
-        const SolarDay n = next_winter_solstice.next(next_winter_solstice.get_lunar_day().get_sixty_cycle().steps_close_to(0));
-        // 43210012345678876543210012345
-        //      w        s        n
-        //     冬至     夏至      冬至
-        if (d.is_before(w)) {
-            return NineStar::from_index(w.subtract(d) - 1);
-        }
-        if (d.is_before(s)) {
-            return NineStar::from_index(d.subtract(w));
-        }
-        return NineStar::from_index(d.is_before(n) ? n.subtract(d) - 1 : d.subtract(n));
+        return get_solar_day().get_nine_star();
     }
 
     Direction LunarDay::get_jupiter_direction() const {
@@ -2857,10 +2826,6 @@ namespace tyme {
         return SolarDay::from_ymd(year, month, 1);
     }
 
-    const vector<string> SolarWeek::NAMES = {
-        "第一周", "第二周", "第三周", "第四周", "第五周", "第六周"
-    };
-
     void SolarWeek::validate(const int year, const int month, const int index, const int start) {
         WeekUnit::validate(index, start);
         if (const SolarMonth m = SolarMonth::from_ym(year, month); index >= m.get_week_count(start)) {
@@ -3201,6 +3166,29 @@ namespace tyme {
 
     Phase SolarDay::get_phase() const {
         return get_phase_day().get_phase();
+    }
+
+    NineStar SolarDay::get_nine_star() const {
+        const int y = get_year();
+        const SolarDay winter_solstice = SolarTerm::from_index(y, 0).get_solar_day();
+        const SolarDay summer_solstice = SolarTerm::from_index(y, 12).get_solar_day();
+        const SolarDay next_winter_solstice =SolarTerm::from_index(y + 1, 0).get_solar_day();
+        // 距冬至最近的甲子日
+        const SolarDay w = winter_solstice.next(winter_solstice.get_lunar_day().get_sixty_cycle().steps_close_to(0));
+        // 距夏至最近的甲子日
+        const SolarDay s = summer_solstice.next(summer_solstice.get_lunar_day().get_sixty_cycle().steps_close_to(0));
+        // 距下个冬至最近的甲子日
+        const SolarDay n = next_winter_solstice.next(next_winter_solstice.get_lunar_day().get_sixty_cycle().steps_close_to(0));
+        // 43210012345678876543210012345
+        //      w        s        n
+        //     冬至     夏至      冬至
+        if (is_before(w)) {
+            return NineStar::from_index(w.subtract(*this) - 1);
+        }
+        if (is_before(s)) {
+            return NineStar::from_index(subtract(w));
+        }
+        return NineStar::from_index(is_before(n) ? n.subtract(*this) - 1 : subtract(n));
     }
 
     SolarTime &SolarTime::operator=(const SolarTime &other) {
@@ -3908,52 +3896,48 @@ namespace tyme {
         return LegalHoliday(stoi(d.substr(0, 4)), stoi(d.substr(4, 2)), stoi(d.substr(6, 2)), d);
     }
 
+    FestivalType AbstractFestival::get_type() const {
+        return _type;
+    }
+
+    int AbstractFestival::get_index() const {
+        return index;
+    }
+
+    DayUnit AbstractFestival::get_day() const {
+        return day;
+    }
+
+    string AbstractFestival::get_name() const {
+        return event.get_name();
+    }
+
     const vector<string> SolarFestival::NAMES = {
         "元旦", "妇女节", "植树节", "劳动节", "青年节", "儿童节", "建党节", "建军节", "教师节", "国庆节"
     };
 
-    string SolarFestival::DATA = "@00001011950@01003081950@02003121979@03005011950@04005041950@05006011950@06007011941@07008011933@08009101985@09010011950";
+    string SolarFestival::DATA = "0VV__0Ux0Xc__0Ux0Xg__0_Q0ZV__0Ux0ZY__0Ux0aV__0Ux0bV__0Uo0cV__0Ug0de__0_V0eV__0Ux";
 
     optional<SolarFestival> SolarFestival::from_index(const int year, const int index) {
         if (index < 0 || static_cast<size_t>(index) >= NAMES.size()) {
             return nullopt;
         }
-        char buffer[3];
-        snprintf(buffer, sizeof(buffer), "%02d", index);
-        const regex re("@" + string(buffer) + "\\d+");
-        if (smatch match; regex_search(DATA, match, re)) {
-            FestivalType type;
-            const string data = match[0];
-            char d = data[3];
-            if ('0' == d) {
-                type = FestivalType::DAY;
-            } else if ('1' == d) {
-                type = FestivalType::TERM;
-            } else if ('2' == d) {
-                type = FestivalType::EVE;
-            } else {
-                return nullopt;
-            }
-            const int start_year = stoi(data.substr(8));
-            if (year < start_year) {
-                return nullopt;
-            }
-            return SolarFestival(type, SolarDay::from_ymd(year, stoi(data.substr(4, 2)), stoi(data.substr(6, 2))), start_year, data);
+        const int start = index * 8;
+        const auto e = Event(NAMES[index], "@" + DATA.substr(start, 8));
+        if (year < e.get_start_year()) {
+            return nullopt;
         }
-        return nullopt;
+        return SolarFestival(FestivalType::DAY, index, e, SolarDay::from_ymd(year, e.get_value(2), e.get_value(3)));
     }
 
     optional<SolarFestival> SolarFestival::from_ymd(const int year, const int month, const int day) {
-        char buffer[5];
-        snprintf(buffer, sizeof(buffer), "%02d%02d", month, day);
-        const regex re("@\\d{2}0" + string(buffer) + "\\d+");
-        if (smatch match; regex_search(DATA, match, re)) {
-            const string data= match[0];
-            const int start_year = stoi(data.substr(8));
-            if (year < start_year) {
-                return nullopt;
+        const SolarDay d = SolarDay::from_ymd(year, month, day);
+        const int size = static_cast<int>(NAMES.size());
+        for (int i = 0; i < size; i++) {
+            const int start = i * 8;
+            if (const auto e = Event(NAMES[i], "@" + DATA.substr(start, 8)); d.get_year() >= e.get_start_year() && d.get_month() == e.get_value(2) && d.get_day() == e.get_value(3)) {
+                return SolarFestival(FestivalType::DAY, i, e, d);
             }
-            return SolarFestival(FestivalType::DAY, SolarDay::from_ymd(year, month, day), start_year, data);
         }
         return nullopt;
     }
@@ -3964,86 +3948,65 @@ namespace tyme {
         return from_index((day.get_year() * size + i) / size, index_of(i, size));
     }
 
-    FestivalType SolarFestival::get_type() const {
-        return _type;
-    }
-
-    int SolarFestival::get_index() const {
-        return index;
-    }
-
     SolarDay SolarFestival::get_day() const {
-        return day;
+        return SolarDay::from_ymd(day.get_year(), day.get_month(), day.get_day());
     }
 
     int SolarFestival::get_start_year() const {
-        return start_year;
-    }
-
-    string SolarFestival::get_name() const {
-        return name;
+        return event.get_start_year();
     }
 
     string SolarFestival::to_string() const {
-        return day.to_string() + " " + name;
+        return get_day().to_string() + " " + get_name();
     }
 
     const vector<string> LunarFestival::NAMES = {
         "春节", "元宵节", "龙头节", "上巳节", "清明节", "端午节", "七夕节", "中元节", "中秋节", "重阳节", "冬至节", "腊八节", "除夕"
     };
 
-    string LunarFestival::DATA = "@0000101@0100115@0200202@0300303@04107@0500505@0600707@0700715@0800815@0900909@10124@1101208@122";
+    string LunarFestival::DATA = "2VV__0002Vj__0002WW__0002XX__0003b___0002ZZ__0002bb__0002bj__0002cj__0002dd__0003s___0002gc__0002hV_U000";
 
     optional<LunarFestival> LunarFestival::from_index(const int year, const int index) {
         if (index < 0 || static_cast<size_t>(index) >= NAMES.size()) {
             return nullopt;
         }
-        char buffer[3];
-        snprintf(buffer, sizeof(buffer), "%02d", index);
-        const regex re("@" + string(buffer) + "\\d+");
-        if (smatch match; regex_search(DATA, match, re)) {
-            const string data= match[0];
-            const char d = data[3];
-            if ('0' == d) {
-                return LunarFestival(FestivalType::DAY, LunarDay::from_ymd(year, stoi(data.substr(4, 2)), stoi(data.substr(6))), nullopt, data);
-            }
-            if ('1' == d) {
-                SolarTerm solar_term = SolarTerm::from_index(year, stoi(data.substr(4)));
-                return LunarFestival(FestivalType::TERM, solar_term.get_solar_day().get_lunar_day(), solar_term, data);
-            }
-            if ('2' == d) {
-                return LunarFestival(FestivalType::EVE, LunarDay::from_ymd(year + 1, 1, 1).next(-1), nullopt, data);
-            }
+        const int start = index * 8;
+        const auto e = Event(NAMES[index], "@" + DATA.substr(start, 8));
+        const EventType t = e.get_type();
+        if (t == EventType::LUNAR_DAY) {
+            const array<int, 2> m = e.get_month(year);
+            const LunarDay d = LunarDay::from_ymd(m[0], m[1], e.get_value(3));
+            const int offset = e.get_value(5);
+            return LunarFestival(FestivalType::DAY, index, e, 0 == offset ? d : d.next(offset));
+        }
+        if (t == EventType::TERM_DAY) {
+            return LunarFestival(FestivalType::TERM, index, e, SolarTerm::from_index(year, e.get_value(2)).get_solar_day().get_lunar_day());
         }
         return nullopt;
     }
 
     optional<LunarFestival> LunarFestival::from_ymd(int year, int month, int day) {
-        char buffer[15];
-        snprintf(buffer, sizeof(buffer), "@\\d{2}0%02d%02d", month, day);
-        const auto pattern = string(buffer);
-        const regex re(pattern);
-        smatch match;
-        if (regex_search(DATA, match, re)) {
-            const string data= match[0];
-            return LunarFestival(FestivalType::DAY, LunarDay::from_ymd(year, month, day), nullopt, data);
-        }
-        const LunarDay lunar_day = LunarDay::from_ymd(year, month, day);
-        const SolarDay solar_day = lunar_day.get_solar_day();
-        const regex re1("@\\d{2}1\\d{2}");
-        auto start(DATA.cbegin());
-        while (regex_search(start, DATA.cend(), match, re1)) {
-            const string data= match[0];
-            SolarTerm term = SolarTerm::from_index(year, stoi(data.substr(4)));
-            if (SolarDay term_day = term.get_solar_day(); term_day.get_year() == solar_day.get_year() && term_day.get_month() == solar_day.get_month() && term_day.get_day() == solar_day.get_day()) {
-                return LunarFestival(FestivalType::TERM, lunar_day, term, data);
+        const LunarDay d = LunarDay::from_ymd(year, month, day);
+        const int size = static_cast<int>(NAMES.size());
+        for (int i = 0; i < size; i++) {
+            const int start = i * 8;
+            const auto e = Event(NAMES[i], "@" + DATA.substr(start, 8));
+            const EventType t = e.get_type();
+            if (t == EventType::LUNAR_DAY) {
+                if (const int offset = e.get_value(5); 0 == offset) {
+                    if (d.get_month() == e.get_value(2) && d.get_day() == e.get_value(3)) {
+                        return LunarFestival(FestivalType::DAY, i, e, d);
+                    }
+                } else {
+                    array<int, 2> m = e.get_month(d.get_year());
+                    if (LunarDay next = d.next(-offset); next.get_year() == m[0] && next.get_month() == m[1] && next.get_day() == e.get_value(3)) {
+                        return LunarFestival(FestivalType::DAY, i, e, d);
+                    }
+                }
             }
-            start = match[0].second;
-        }
-        if (abs(month) == 12 && day > 28) {
-            if (const regex re2("@\\d{2}2"); regex_search(DATA, match, re2)) {
-                if (lunar_day.next(1).get_year() != year) {
-                    return LunarFestival(FestivalType::EVE, lunar_day, nullopt, match[0]);
+            if (t == EventType::TERM_DAY) {
+                if (SolarTermDay term = d.get_solar_day().get_term_day(); term.get_day_index() == 0 && term.get_solar_term().get_index() == e.get_value(2) % 24) {
+                    return LunarFestival(FestivalType::TERM, i, e, d);
                 }
             }
         }
@@ -4056,29 +4019,24 @@ namespace tyme {
         return from_index((day.get_year() * size + i) / size, index_of(i, size));
     }
 
-    FestivalType LunarFestival::get_type() const {
-        return _type;
-    }
-
-    int LunarFestival::get_index() const {
-        return index;
-    }
-
     LunarDay LunarFestival::get_day() const {
-        return day;
+        return LunarDay::from_ymd(day.get_year(), day.get_month(), day.get_day());
     }
 
     optional<SolarTerm> LunarFestival::get_solar_term() const {
-        return solar_term;
-    }
-
-    string LunarFestival::get_name() const {
-        return name;
+        if (const SolarTermDay t = get_day().get_solar_day().get_term_day(); t.get_day_index() == 0) {
+            return t.get_solar_term();
+        }
+        return nullopt;
     }
 
     string LunarFestival::to_string() const {
-        return day.to_string() + " " + name;
+        return get_day().to_string() + " " + get_name();
     }
+
+    const vector<string> RabByungElement::NAMES = {
+        "木", "火", "土", "铁", "水"
+    };
 
     RabByungElement RabByungElement::from_index(const int index) {
         return RabByungElement(index);
@@ -4110,15 +4068,6 @@ namespace tyme {
 
     RabByungElement RabByungElement::get_restrained() const {
         return next(-2);
-    }
-
-    Direction RabByungElement::get_direction() const {
-        const int indices[5] = {2, 8, 4, 6, 0};
-        return Direction::from_index(indices[index]);
-    }
-
-    string RabByungElement::get_name() const {
-        return regex_replace(names[index], regex("金"), "铁");
     }
 
     void RabByungYear::validate(const int year) {
@@ -4231,10 +4180,6 @@ namespace tyme {
 
     std::map<int, vector<int>> RabByungMonth::DAYS = std::map<int, vector<int>>();
 
-    const vector<string> RabByungMonth::NAMES = {
-        "正月", "二月", "三月", "四月", "五月", "六月", "七月", "八月", "九月", "十月", "十一月", "十二月"
-    };
-
     const vector<string> RabByungMonth::ALIAS = {
         "神变月", "苦行月", "具香月", "萨嘎月", "作净月", "明净月", "具醉月", "具贤月", "天降月", "持众月", "庄严月", "满意月"
     };
@@ -4285,7 +4230,7 @@ namespace tyme {
     }
 
     string RabByungMonth::get_name() const {
-        return (leap ? "闰" : "") + NAMES[month - 1];
+        return (leap ? "闰" : "") + LunarMonth::NAMES[month - 1];
     }
 
     string RabByungMonth::get_alias() const {
@@ -4495,6 +4440,24 @@ namespace tyme {
         return get_solar_day().next(n).get_rab_byung_day();
     }
 
+    int Event::get_char_index(const int index) const {
+        return static_cast<int>(EventManager::CHARS.find(data[index]));
+    }
+
+    int Event::get_value(const int index) const {
+        return get_char_index(index) - 31;
+    }
+
+    array<int, 2> Event::get_month(const int year) const {
+        int y = year;
+        int m = get_value(2);
+        if (m > 12) {
+            m = 1;
+            y += 1;
+        }
+        return {y, m};
+    }
+
     void Event::validate(const string &data) {
         if (data.empty()) {
             throw invalid_argument("illegal event data: empty");
@@ -4540,10 +4503,8 @@ namespace tyme {
         return l;
     }
 
-    optional<EventType> Event::get_type() const {
-        switch (static_cast<int>(EventManager::CHARS.find(data[1]))) {
-            case 0:
-                return EventType::SOLAR_DAY;
+    EventType Event::get_type() const {
+        switch (get_char_index(1)) {
             case 1:
                 return EventType::SOLAR_WEEK;
             case 2:
@@ -4556,7 +4517,7 @@ namespace tyme {
                 return EventType::TERM_EB;
             default: ;
         }
-        return nullopt;
+        return EventType::SOLAR_DAY;
     }
 
     string Event::get_name() const {
@@ -4571,21 +4532,17 @@ namespace tyme {
         int n = 0;
         const int size = static_cast<int>(EventManager::CHARS.length());
         for (int i = 0; i < 3; ++i) {
-            n = n * size + static_cast<int>(EventManager::CHARS.find(data[6 + i]));
+            n = n * size + get_char_index(6 + i);
         }
         return n;
     }
 
     optional<SolarDay> Event::get_solar_day(int year) const {
-        const auto t = get_type();
-        if (!t) {
-            return nullopt;
-        }
         if (year < get_start_year()) {
             return nullopt;
         }
         optional<SolarDay> d;
-        switch (t.value()) {
+        switch (get_type()) {
             case EventType::SOLAR_DAY:
                 d = get_solar_day_by_solar_day(year);
                 break;
@@ -4608,21 +4565,17 @@ namespace tyme {
         if (!d) {
             return nullopt;
         }
-        const int offset = static_cast<int>(EventManager::CHARS.find(data[5])) - 31;
+        const int offset = get_value(5);
         return offset == 0 ? d : d->next(offset);
     }
 
     optional<SolarDay> Event::get_solar_day_by_solar_day(const int year) const {
-        int y = year;
-        int m = static_cast<int>(EventManager::CHARS.find(data[2])) - 31;
-        if (m > 12) {
-            m = 1;
-            y += 1;
-        }
-        const int d = static_cast<int>(EventManager::CHARS.find(data[3])) - 31;
-        const int delay = static_cast<int>(EventManager::CHARS.find(data[4])) - 31;
-        const SolarMonth month = SolarMonth::from_ym(y, m);
-        if (const int last_day = month.get_day_count(); d > last_day) {
+        const array<int, 2> month = get_month(year);
+        const int y = month[0];
+        const int m = month[1];
+        const int d = get_value(3);
+        const int delay = get_value(4);
+        if (const int last_day = SolarMonth::from_ym(y, m).get_day_count(); d > last_day) {
             if (delay == 0) {
                 return nullopt;
             }
@@ -4635,16 +4588,12 @@ namespace tyme {
     }
 
     optional<SolarDay> Event::get_solar_day_by_lunar_day(const int year) const {
-        int y = year;
-        int m = static_cast<int>(EventManager::CHARS.find(data[2])) - 31;
-        if (m > 12) {
-            m = 1;
-            y += 1;
-        }
-        const int d = static_cast<int>(EventManager::CHARS.find(data[3])) - 31;
-        const int delay = static_cast<int>(EventManager::CHARS.find(data[4])) - 31;
-        const LunarMonth month = LunarMonth::from_ym(y, m);
-        if (const int last_day = month.get_day_count(); d > last_day) {
+        const array<int, 2> month = get_month(year);
+        const int y = month[0];
+        const int m = month[1];
+        const int d = get_value(3);
+        const int delay = get_value(4);
+        if (const int last_day = LunarMonth::from_ym(y, m).get_day_count(); d > last_day) {
             if (delay == 0) {
                 return nullopt;
             }
@@ -4658,41 +4607,50 @@ namespace tyme {
 
     optional<SolarDay> Event::get_solar_day_by_week(const int year) const {
         // 第几个星期
-        const int n = static_cast<int>(EventManager::CHARS.find(data[3])) - 31;
+        const int n = get_value(3);
         if (n == 0) {
             return nullopt;
         }
-        const SolarMonth m = SolarMonth::from_ym(year, static_cast<int>(EventManager::CHARS.find(data[2])) - 31);
+        const SolarMonth m = SolarMonth::from_ym(year, get_value(2));
         // 星期几
-        const int w = static_cast<int>(EventManager::CHARS.find(data[4])) - 31;
+        const int w = get_value(4);
         if (n > 0) {
-            SolarDay d = m.get_first_day();
+            const SolarDay d = m.get_first_day();
             return d.next(d.get_week().steps_to(w) + 7 * n - 7);
         }
-        SolarDay d = SolarDay::from_ymd(year, m.get_month(), m.get_day_count());
+        const SolarDay d = SolarDay::from_ymd(year, m.get_month(), m.get_day_count());
         return d.next(d.get_week().steps_back_to(w) + 7 * n + 7);
     }
 
     optional<SolarDay> Event::get_solar_day_by_term(const int year) const {
-        const int offset = static_cast<int>(EventManager::CHARS.find(data[4])) - 31;
-        const SolarDay d = SolarTerm::from_index(year, static_cast<int>(EventManager::CHARS.find(data[2])) - 31).get_solar_day();
+        const SolarDay d = SolarTerm::from_index(year, get_value(2)).get_solar_day();
+        const int offset = get_value(4);
         return offset == 0 ? d : d.next(offset);
     }
 
     optional<SolarDay> Event::get_solar_day_by_term_heaven_stem(const int year) const {
         const auto d = get_solar_day_by_term(year);
         if (!d) return nullopt;
-        return d->next(d->get_lunar_day().get_sixty_cycle().get_heaven_stem().steps_to(static_cast<int>(EventManager::CHARS.find(data[3])) - 31));
+        return d->next(d->get_lunar_day().get_sixty_cycle().get_heaven_stem().steps_to(get_value(3)));
     }
 
     optional<SolarDay> Event::get_solar_day_by_term_earth_branch(const int year) const {
         const auto d = get_solar_day_by_term(year);
         if (!d) return nullopt;
-        return d->next(d->get_lunar_day().get_sixty_cycle().get_earth_branch().steps_to(static_cast<int>(EventManager::CHARS.find(data[3])) - 31));
+        return d->next(d->get_lunar_day().get_sixty_cycle().get_earth_branch().steps_to(get_value(3)));
     }
 
     EventBuilder EventBuilder::name(const string &name) {
         this->_name = name;
+        return *this;
+    }
+
+    char EventBuilder::get_char(const int index) {
+        return EventManager::CHARS[index];
+    }
+
+    EventBuilder &EventBuilder::set_value(const int index, const int n) {
+        data[index] = EventManager::CHARS[31 + n];
         return *this;
     }
 
@@ -4716,15 +4674,12 @@ namespace tyme {
                 break;
             default: ;
         }
-        return EventManager::CHARS[i];
+        return get_char(i);
     }
 
     EventBuilder &EventBuilder::content(const EventType type, const int a, const int b, const int c) {
         data[1] = encode_type(type);
-        data[2] = EventManager::CHARS[31 + a];
-        data[3] = EventManager::CHARS[31 + b];
-        data[4] = EventManager::CHARS[31 + c];
-        return *this;
+        return set_value(2, a).set_value(3, b).set_value(4, c);
     }
 
     EventBuilder EventBuilder::solar_day(const int solar_month, const int solar_day, const int delay_days) {
@@ -4757,15 +4712,14 @@ namespace tyme {
         const int size = static_cast<int>(EventManager::CHARS.length());
         int n = year;
         for (int i = 0; i < 3; ++i) {
-            data[8 - i] = EventManager::CHARS[n % size];
+            data[8 - i] = get_char(n % size);
             n /= size;
         }
         return *this;
     }
 
     EventBuilder EventBuilder::offset(const int days) {
-        data[5] = EventManager::CHARS[31 + days];
-        return *this;
+        return set_value(5, days);
     }
 
     Event EventBuilder::build() const {

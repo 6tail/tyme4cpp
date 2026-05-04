@@ -300,6 +300,10 @@ TEST_CASE("rab_byung_day_test_7") {
     REQUIRE("第十七饶迥木蛇年二月廿九" == SolarDay::from_ymd(2025, 4, 26).get_rab_byung_day().to_string());
 }
 
+TEST_CASE("rab_byung_element_test_0") {
+    REQUIRE("西" == RabByungElement::from_name("铁").get_direction().to_string());
+}
+
 TEST_CASE("lunar_festival_test_0") {
     // 测试春节
     auto festival = LunarDay::from_ymd(2023, 1, 1).get_festival();
@@ -394,15 +398,15 @@ TEST_CASE("three_pillars_test_1") {
 
 void init_events() {
     // 公历现代节日
-    //EventManager::DATA = "@0VV__0Ux公历现代节日:元旦@0Xc__0Ux公历现代节日:三八妇女节@0Xg__0_Q公历现代节日:植树节@0ZV__0Ux公历现代节日:五一劳动节@0ZY__0Ux公历现代节日:五四青年节@0aV__0Ux公历现代节日:六一儿童节@0bV__0Uo公历现代节日:建党节@0cV__0Ug公历现代节日:八一建军节@0de__0_V公历现代节日:教师节@0eV__0Ux公历现代节日:国庆节";
+    //EventManager::DATA = "@0VV__0Ux公历现代节日:元旦@0Xc__0Ux公历现代节日:妇女节@0Xg__0_Q公历现代节日:植树节@0ZV__0Ux公历现代节日:劳动节@0ZY__0Ux公历现代节日:青年节@0aV__0Ux公历现代节日:儿童节@0bV__0Uo公历现代节日:建党节@0cV__0Ug公历现代节日:建军节@0de__0_V公历现代节日:教师节@0eV__0Ux公历现代节日:国庆节";
     EventManager::update("公历现代节日:元旦", Event::builder().solar_day(1, 1, 0).start_year(1950).build());
-    EventManager::update("公历现代节日:三八妇女节", Event::builder().solar_day(3, 8, 0).start_year(1950).build());
+    EventManager::update("公历现代节日:妇女节", Event::builder().solar_day(3, 8, 0).start_year(1950).build());
     EventManager::update("公历现代节日:植树节", Event::builder().solar_day(3, 12, 0).start_year(1979).build());
-    EventManager::update("公历现代节日:五一劳动节", Event::builder().solar_day(5, 1, 0).start_year(1950).build());
-    EventManager::update("公历现代节日:五四青年节", Event::builder().solar_day(5, 4, 0).start_year(1950).build());
-    EventManager::update("公历现代节日:六一儿童节", Event::builder().solar_day(6, 1, 0).start_year(1950).build());
+    EventManager::update("公历现代节日:劳动节", Event::builder().solar_day(5, 1, 0).start_year(1950).build());
+    EventManager::update("公历现代节日:青年节", Event::builder().solar_day(5, 4, 0).start_year(1950).build());
+    EventManager::update("公历现代节日:儿童节", Event::builder().solar_day(6, 1, 0).start_year(1950).build());
     EventManager::update("公历现代节日:建党节", Event::builder().solar_day(7, 1, 0).start_year(1941).build());
-    EventManager::update("公历现代节日:八一建军节", Event::builder().solar_day(8, 1, 0).start_year(1933).build());
+    EventManager::update("公历现代节日:建军节", Event::builder().solar_day(8, 1, 0).start_year(1933).build());
     EventManager::update("公历现代节日:教师节", Event::builder().solar_day(9, 10, 0).start_year(1985).build());
     EventManager::update("公历现代节日:国庆节", Event::builder().solar_day(10, 1, 0).start_year(1950).build());
 

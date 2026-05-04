@@ -23,7 +23,7 @@ namespace tyme {
     /**
      * @brief 节日类型
      */
-    enum class FestivalType {
+    enum class [[deprecated]] FestivalType {
         DAY = 0,
         TERM = 1,
         EVE = 2
@@ -199,6 +199,8 @@ namespace tyme {
     class WeekUnit : public MonthUnit {
     public:
         ~WeekUnit() override = default;
+
+        static const vector<string> NAMES;
 
         explicit WeekUnit(const int year, const int month, const int index, const int start) : MonthUnit(year, month) {
             this->index = index;
@@ -459,6 +461,12 @@ namespace tyme {
         }
 
         explicit Element(const string &name) : LoopTyme(NAMES, name) {
+        }
+
+        explicit Element(const vector<string> &names, const int index) : LoopTyme(names, index) {
+        }
+
+        explicit Element(const vector<string> &names, const string &name) : LoopTyme(names, name) {
         }
 
         static Element from_index(int index);
@@ -966,6 +974,8 @@ namespace tyme {
         ~NineStar() override = default;
 
         static const vector<string> NAMES;
+
+        static const vector<string> COLORS;
 
         explicit NineStar(const int index) : LoopTyme(NAMES, index) {
         }
@@ -2459,8 +2469,6 @@ namespace tyme {
     public:
         ~LunarWeek() override = default;
 
-        static const vector<string> NAMES;
-
         explicit LunarWeek(const int year, const int month, const int index, const int start) : WeekUnit(year, month, index, start) {
             validate(year, month, index, start);
         }
@@ -3287,6 +3295,12 @@ namespace tyme {
          * @return 月相
          */
         Phase get_phase() const;
+
+        /**
+         * @brief 九星
+         * @return 九星
+         */
+        NineStar get_nine_star() const;
     };
 
     /**
@@ -3295,8 +3309,6 @@ namespace tyme {
     class SolarWeek : public WeekUnit {
     public:
         ~SolarWeek() override = default;
-
-        static const vector<string> NAMES;
 
         explicit SolarWeek(const int year, const int month, const int index, const int start) : WeekUnit(year, month, index, start) {
             validate(year, month, index, start);
@@ -4653,19 +4665,19 @@ namespace tyme {
      */
     class RabByungElement : public Element {
     public:
+        static const vector<string> NAMES;
+
         ~RabByungElement() override = default;
 
-        explicit RabByungElement(const int index) : Element(index) {
+        explicit RabByungElement(const int index) : Element(NAMES, index) {
         }
 
-        explicit RabByungElement(const string &name) : Element(regex_replace(name, regex("铁"), "金")) {
+        explicit RabByungElement(const string &name) : Element(NAMES, name) {
         }
 
         static RabByungElement from_index(int index);
 
         static RabByungElement from_name(const string &name);
-
-        string get_name() const override;
 
         RabByungElement next(int n) const;
 
@@ -4694,12 +4706,6 @@ namespace tyme {
          * @return 五行
          */
         RabByungElement get_restrained() const;
-
-        /**
-         * @brief 方位
-         * @return 方位
-         */
-        Direction get_direction() const;
     };
 
     /**
@@ -4821,7 +4827,6 @@ namespace tyme {
     public:
         ~RabByungMonth() override = default;
 
-        static const vector<string> NAMES;
         static const vector<string> ALIAS;
         static std::map<int, vector<int>> DAYS;
 
@@ -4932,122 +4937,6 @@ namespace tyme {
          * @brief 是否闰月
          */
         bool leap;
-    };
-    
-    /**
-     * @brief 公历现代节日
-     */
-    class SolarFestival : public AbstractCulture {
-    public:
-        ~SolarFestival() override = default;
-
-        static const vector<string> NAMES;
-        static string DATA;
-
-        explicit SolarFestival(const FestivalType type, const SolarDay &day, const int start_year, const string &data): _type(type), index(stoi(data.substr(1, 2))), day(day), name(NAMES[index]), start_year(start_year) {
-        }
-
-        static optional<SolarFestival> from_index(int year, int index);
-
-        static optional<SolarFestival> from_ymd(int year, int month, int day);
-
-        FestivalType get_type() const;
-
-        int get_index() const;
-
-        SolarDay get_day() const;
-
-        int get_start_year() const;
-
-        optional<SolarFestival> next(int n) const;
-
-        string to_string() const override;
-
-        string get_name() const override;
-
-    protected:
-        /**
-         * @brief 类型
-         */
-        FestivalType _type;
-
-        /**
-         * @brief 索引
-         */
-        int index;
-
-        /**
-         * @brief 公历日
-         */
-        SolarDay day;
-
-        /**
-         * @brief 名称
-         */
-        string name;
-
-        /**
-         * @brief 起始年
-         */
-        int start_year;
-    };
-
-    /**
-     * @brief 农历传统节日（依据国家标准《农历的编算和颁行》GB/T 33661-2017）
-     */
-    class LunarFestival : public AbstractCulture {
-    public:
-        ~LunarFestival() override = default;
-
-        static const vector<string> NAMES;
-        static string DATA;
-
-        explicit LunarFestival(const FestivalType type, const LunarDay &day, optional<SolarTerm> solar_term, const string &data): _type(type), index(stoi(data.substr(1, 2))), day(day), name(NAMES[index]), solar_term(std::move(solar_term)) {
-        }
-
-        static optional<LunarFestival> from_index(int year, int index);
-
-        static optional<LunarFestival> from_ymd(int year, int month, int day);
-
-        FestivalType get_type() const;
-
-        int get_index() const;
-
-        LunarDay get_day() const;
-
-        optional<SolarTerm> get_solar_term() const;
-
-        optional<LunarFestival> next(int n) const;
-
-        string to_string() const override;
-
-        string get_name() const override;
-
-    protected:
-        /**
-         * @brief 类型
-         */
-        FestivalType _type;
-
-        /**
-         * @brief 索引
-         */
-        int index;
-
-        /**
-         * @brief 农历日
-         */
-        LunarDay day;
-
-        /**
-         * @brief 名称
-         */
-        string name;
-
-        /**
-         * @brief 节气
-         */
-        optional<SolarTerm> solar_term;
     };
 
     /**
@@ -5222,11 +5111,15 @@ namespace tyme {
          */
         static vector<Event> all();
 
+        int get_value(int index) const;
+
+        array<int, 2> get_month(int year) const;
+
         /**
          * @brief 事件类型
          * @return 事件类型
          */
-        optional<EventType> get_type() const;
+        EventType get_type() const;
 
         /**
          * @brief 名称
@@ -5255,6 +5148,8 @@ namespace tyme {
 
     protected:
         friend class EventBuilder;
+
+        int get_char_index(int index) const;
 
         optional<SolarDay> get_solar_day_by_solar_day(int year) const;
 
@@ -5362,6 +5257,10 @@ namespace tyme {
         Event build() const;
 
     protected:
+        static char get_char(int index);
+
+        EventBuilder &set_value(int index, int n);
+
         EventBuilder &content(EventType type, int a, int b, int c);
 
         /**
@@ -5424,6 +5323,109 @@ namespace tyme {
 
     protected:
         static void save_or_update(const string &name, const string &data);
+    };
+
+    /**
+     * @brief 节日抽象
+     */
+    class AbstractFestival : public AbstractCulture {
+    public:
+        ~AbstractFestival() override = default;
+
+        explicit AbstractFestival(const FestivalType type, const int index, const Event& event, const DayUnit& day): _type(type), index(index), event(event), day(day) {
+        }
+
+        /**
+         * @brief 节日类型
+         * @return 节日类型
+         */
+        [[deprecated]] FestivalType get_type() const;
+
+        /**
+         * @brief 索引
+         * @return 索引
+         */
+        int get_index() const;
+
+        /**
+         * @brief 日
+         * @return 日
+         */
+        DayUnit get_day() const;
+
+        string get_name() const override;
+    protected:
+        /**
+         * @brief 类型
+         */
+        FestivalType _type;
+
+        /**
+         * @brief 索引
+         */
+        int index;
+
+        /**
+         * @brief 日
+         */
+        DayUnit day;
+
+        /**
+         * @brief 事件
+         */
+        Event event;
+    };
+
+    /**
+     * @brief 公历现代节日
+     */
+    class SolarFestival : public AbstractFestival {
+    public:
+        ~SolarFestival() override = default;
+
+        static const vector<string> NAMES;
+        static string DATA;
+
+        explicit SolarFestival(const FestivalType type, const int index, const Event& event, const SolarDay& day) : AbstractFestival(type, index, event, day) {
+        }
+
+        static optional<SolarFestival> from_index(int year, int index);
+
+        static optional<SolarFestival> from_ymd(int year, int month, int day);
+
+        SolarDay get_day() const;
+
+        int get_start_year() const;
+
+        optional<SolarFestival> next(int n) const;
+
+        string to_string() const override;
+    };
+
+    /**
+     * @brief 农历传统节日（依据国家标准《农历的编算和颁行》GB/T 33661-2017）
+     */
+    class LunarFestival : public AbstractFestival {
+    public:
+        ~LunarFestival() override = default;
+
+        static const vector<string> NAMES;
+        static string DATA;
+
+        explicit LunarFestival(const FestivalType type, const int index, const Event& event, const LunarDay& day) : AbstractFestival(type, index, event, day) {
+        }
+
+        static optional<LunarFestival> from_index(int year, int index);
+
+        static optional<LunarFestival> from_ymd(int year, int month, int day);
+
+        LunarDay get_day() const;
+
+        optional<SolarTerm> get_solar_term() const;
+
+        optional<LunarFestival> next(int n) const;
+
+        string to_string() const override;
     };
 }
 #endif
