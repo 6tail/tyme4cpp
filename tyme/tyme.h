@@ -4828,7 +4828,7 @@ namespace tyme {
         ~RabByungMonth() override = default;
 
         static const vector<string> ALIAS;
-        static map<int, vector<int>> DAYS;
+        static std::map<int, vector<int>> DAYS;
 
         explicit RabByungMonth(const int year, const int month): MonthUnit(year, abs(month)), leap(month < 0) {
             static once_flag flag;
@@ -4844,7 +4844,7 @@ namespace tyme {
                         for (int i = 0; i < len; i++) {
                             data.push_back(ys[i + 1] - '5' - 30);
                         }
-                        DAYS[y * 13 + m] = data;
+                        RabByungMonth::DAYS[y * 13 + m] = data;
                         m++;
                         ys = ys.substr(len + 1);
                     }
