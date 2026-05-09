@@ -662,7 +662,7 @@ namespace tyme {
         return Direction::from_name(get_name());
     }
 
-    Beast Zone::get_best() const {
+    Beast Zone::get_beast() const {
         return Beast::from_index(index);
     }
 
@@ -3423,8 +3423,8 @@ namespace tyme {
 
     vector<SolarTime> EightChar::get_solar_times(const int start_year, const int end_year) const {
         const SixtyCycle year = get_year();
-        const SixtyCycle month = get_year();
-        const SixtyCycle day = get_year();
+        const SixtyCycle month = get_month();
+        const SixtyCycle day = get_day();
         auto l = vector<SolarTime>();
         // 月地支距寅月的偏移值
         int m = month.get_earth_branch().next(-2).get_index();

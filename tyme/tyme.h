@@ -861,7 +861,7 @@ namespace tyme {
          * @brief 神兽
          * @return 神兽
          */
-        Beast get_best() const;
+        Beast get_beast() const;
     };
 
     /**
