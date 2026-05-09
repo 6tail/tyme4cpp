@@ -380,7 +380,7 @@ namespace tyme {
         if (i != 0) {
             m = m.next(i);
         }
-        return from_index(m.get_year(), m.get_month(), next_index(n));
+        return from_index(m.get_year(), m.get_month_with_leap(), next_index(n));
     }
 
     SolarTime Phase::get_start_solar_time() const {
@@ -4340,7 +4340,7 @@ namespace tyme {
         const bool leap = day < 0;
         const int d = abs(day);
         if (leap) {
-            if (vector<int> l = m.get_leap_days(); find(l.begin(), l.end(), d) != l.end()) {
+            if (vector<int> l = m.get_leap_days(); find(l.begin(), l.end(), d) == l.end()) {
                 throw invalid_argument("illegal leap day " + std::to_string(d) + " in " + m.to_string());
             }
         }
