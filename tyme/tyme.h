@@ -7,6 +7,7 @@
 #ifdef OUT
 #undef OUT
 #endif
+#include <cstdint>
 #include <mutex>
 #include <string>
 #include <map>
@@ -167,7 +168,7 @@ namespace tyme {
         /**
          * @brief 月
          */
-        int month;
+        int8_t month;
     };
 
     /**
@@ -190,7 +191,7 @@ namespace tyme {
         /**
          * @brief 日
          */
-        int day;
+        int8_t day;
     };
 
     /**
@@ -224,12 +225,12 @@ namespace tyme {
         /**
          * @brief 索引，0-5
          */
-        int index;
+        int8_t index;
 
         /**
          * @brief 起始星期，1234560分别代表星期一至星期天
          */
-        int start;
+        int8_t start;
     };
 
     /**
@@ -268,17 +269,17 @@ namespace tyme {
         /**
          * @brief 时
          */
-        int hour;
+        int8_t hour;
 
         /**
          * @brief 分
          */
-        int minute;
+        int8_t minute;
 
         /**
          * @brief 秒
          */
-        int second;
+        int8_t second;
     };
 
     /**
@@ -386,7 +387,7 @@ namespace tyme {
         /**
          * @brief 索引，从0开始
          */
-        int index;
+        int16_t index;
     };
 
     /**
@@ -1164,7 +1165,7 @@ namespace tyme {
         /**
          * @brief 天索引
          */
-        int day_index;
+        int8_t day_index;
     };
 
     /**
@@ -1249,7 +1250,7 @@ namespace tyme {
         /**
          * @brief 天索引
          */
-        int day_index;
+        int8_t day_index;
     };
 
     /**
@@ -1366,7 +1367,7 @@ namespace tyme {
         /**
          * @brief 天索引
          */
-        int day_index;
+        int8_t day_index;
     };
 
     /**
@@ -1576,7 +1577,7 @@ namespace tyme {
         /**
          * @brief 天索引
          */
-        int day_index;
+        int8_t day_index;
     };
 
     /**
@@ -2862,7 +2863,7 @@ namespace tyme {
         /**
          * @brief 天索引
          */
-        int day_index;
+        int8_t day_index;
     };
 
     /**
@@ -2987,7 +2988,7 @@ namespace tyme {
         /**
          * @brief 索引，0-1
          */
-        int index;
+        int8_t index;
     };
 
     /**
@@ -3036,7 +3037,7 @@ namespace tyme {
         /**
          * @brief 索引，0-3
          */
-        int index;
+        int8_t index;
     };
 
     /**
@@ -3047,7 +3048,7 @@ namespace tyme {
         ~SolarMonth() override = default;
 
         static const vector<string> NAMES;
-        static const int DAYS[];
+        static const int8_t DAYS[];
 
         explicit SolarMonth(const int year, const int month) : MonthUnit(year, month) {
             validate(year, month);
@@ -4055,7 +4056,7 @@ namespace tyme {
         ~FetusDay() override = default;
 
         explicit FetusDay(const SixtyCycle &sixty_cycle) : AbstractCulture(), fetus_heaven_stem(FetusHeavenStem(sixty_cycle.get_heaven_stem().get_index() % 5)), fetus_earth_branch(FetusEarthBranch(sixty_cycle.get_earth_branch().get_index() % 6)) {
-            constexpr int indices[] = {3, 3, 8, 8, 8, 8, 8, 1, 1, 1, 1, 1, 1, 6, 6, 6, 6, 6, 5, 5, 5, 5, 5, 5, 0, 0, 0, 0, 0, -9, -9, -9, -9, -9, -5, -5, -1, -1, -1, -3, -7, -7, -7, -7, -5, 7, 7, 7, 7, 7, 7, 2, 2, 2, 2, 2, 3, 3, 3, 3};
+            constexpr int8_t indices[] = {3, 3, 8, 8, 8, 8, 8, 1, 1, 1, 1, 1, 1, 6, 6, 6, 6, 6, 5, 5, 5, 5, 5, 5, 0, 0, 0, 0, 0, -9, -9, -9, -9, -9, -5, -5, -1, -1, -1, -3, -7, -7, -7, -7, -5, 7, 7, 7, 7, 7, 7, 2, 2, 2, 2, 2, 3, 3, 3, 3};
             const int index = indices[sixty_cycle.get_index()];
             side = index < 0 ? Side::IN : Side::OUT;
             direction = Direction::from_index(index);
@@ -4194,7 +4195,7 @@ namespace tyme {
         /**
          * @brief 天索引
          */
-        int day_index;
+        int8_t day_index;
     };
 
     /**
@@ -4263,27 +4264,27 @@ namespace tyme {
         /**
          * @brief 年数
          */
-        int year_count;
+        int16_t year_count;
 
         /**
          * @brief 月数
          */
-        int month_count;
+        int8_t month_count;
 
         /**
          * @brief 日数
          */
-        int day_count;
+        int8_t day_count;
 
         /**
          * @brief 小时数
          */
-        int hour_count;
+        int8_t hour_count;
 
         /**
          * @brief 分钟数
          */
-        int minute_count;
+        int8_t minute_count;
     };
 
     /**
@@ -4541,7 +4542,7 @@ namespace tyme {
         /**
          * @brief 序号
          */
-        int index;
+        int16_t index;
     };
 
     /**
@@ -4605,7 +4606,7 @@ namespace tyme {
         /**
          * @brief 序号
          */
-        int index;
+        int8_t index;
     };
 
     /**
@@ -4807,17 +4808,17 @@ namespace tyme {
         /**
          * @brief 饶迥(胜生周)序号，从0开始
          */
-        int rab_byung_index;
+        int16_t rab_byung_index;
 
         /**
          * @brief 五行索引，从0开始
          */
-        int element_index;
+        int8_t element_index;
 
         /**
          * @brief 生肖索引，从0开始
          */
-        int zodiac_index;
+        int8_t zodiac_index;
     };
 
     /**
@@ -5045,7 +5046,7 @@ namespace tyme {
         /**
          * @brief 农历月
          */
-        int lunar_month;
+        int8_t lunar_month;
 
         SolarTime get_start_solar_time() const;
     };
@@ -5076,7 +5077,7 @@ namespace tyme {
         /**
          * @brief 天索引
          */
-        int day_index;
+        int8_t day_index;
     };
 
     class EventBuilder;
@@ -5363,7 +5364,7 @@ namespace tyme {
         /**
          * @brief 索引
          */
-        int index;
+        int16_t index;
 
         /**
          * @brief 日

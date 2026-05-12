@@ -2747,7 +2747,7 @@ namespace tyme {
         "1月", "2月", "3月", "4月", "5月", "6月", "7月", "8月", "9月", "10月", "11月", "12月"
     };
 
-    const int SolarMonth::DAYS[] = {31, 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31};
+    const int8_t SolarMonth::DAYS[] = {31, 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31};
 
     void SolarMonth::validate(const int year, const int month) {
         if (month < 1 || month > 12) {
