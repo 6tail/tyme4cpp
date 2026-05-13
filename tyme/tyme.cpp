@@ -2747,7 +2747,7 @@ namespace tyme {
         "1月", "2月", "3月", "4月", "5月", "6月", "7月", "8月", "9月", "10月", "11月", "12月"
     };
 
-    const int8_t SolarMonth::DAYS[] = {31, 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31};
+    const int SolarMonth::DAYS[] = {31, 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31};
 
     void SolarMonth::validate(const int year, const int month) {
         if (month < 1 || month > 12) {
@@ -3893,10 +3893,6 @@ namespace tyme {
         return LegalHoliday(stoi(d.substr(0, 4)), stoi(d.substr(4, 2)), stoi(d.substr(6, 2)), d);
     }
 
-    FestivalType AbstractFestival::get_type() const {
-        return _type;
-    }
-
     int AbstractFestival::get_index() const {
         return index;
     }
@@ -3924,7 +3920,7 @@ namespace tyme {
         if (year < e.get_start_year()) {
             return nullopt;
         }
-        return SolarFestival(FestivalType::DAY, index, e, SolarDay::from_ymd(year, e.get_value(2), e.get_value(3)));
+        return SolarFestival(index, e, SolarDay::from_ymd(year, e.get_value(2), e.get_value(3)));
     }
 
     optional<SolarFestival> SolarFestival::from_ymd(const int year, const int month, const int day) {
@@ -3933,7 +3929,7 @@ namespace tyme {
         for (int i = 0; i < size; i++) {
             const int start = i * 8;
             if (const auto e = Event(NAMES[i], "@" + DATA.substr(start, 8)); d.get_year() >= e.get_start_year() && d.get_month() == e.get_value(2) && d.get_day() == e.get_value(3)) {
-                return SolarFestival(FestivalType::DAY, i, e, d);
+                return SolarFestival(i, e, d);
             }
         }
         return nullopt;
@@ -3974,10 +3970,10 @@ namespace tyme {
             const array<int, 2> m = e.get_month(year);
             const LunarDay d = LunarDay::from_ymd(m[0], m[1], e.get_value(3));
             const int offset = e.get_value(5);
-            return LunarFestival(FestivalType::DAY, index, e, 0 == offset ? d : d.next(offset));
+            return LunarFestival(index, e, 0 == offset ? d : d.next(offset));
         }
         if (t == EventType::TERM_DAY) {
-            return LunarFestival(FestivalType::TERM, index, e, SolarTerm::from_index(year, e.get_value(2)).get_solar_day().get_lunar_day());
+            return LunarFestival(index, e, SolarTerm::from_index(year, e.get_value(2)).get_solar_day().get_lunar_day());
         }
         return nullopt;
     }
@@ -3992,18 +3988,18 @@ namespace tyme {
             if (t == EventType::LUNAR_DAY) {
                 if (const int offset = e.get_value(5); 0 == offset) {
                     if (d.get_month() == e.get_value(2) && d.get_day() == e.get_value(3)) {
-                        return LunarFestival(FestivalType::DAY, i, e, d);
+                        return LunarFestival(i, e, d);
                     }
                 } else {
                     array<int, 2> m = e.get_month(d.get_year());
                     if (LunarDay next = d.next(-offset); next.get_year() == m[0] && next.get_month() == m[1] && next.get_day() == e.get_value(3)) {
-                        return LunarFestival(FestivalType::DAY, i, e, d);
+                        return LunarFestival(i, e, d);
                     }
                 }
             }
             if (t == EventType::TERM_DAY) {
                 if (SolarTermDay term = d.get_solar_day().get_term_day(); term.get_day_index() == 0 && term.get_solar_term().get_index() == e.get_value(2) % 24) {
-                    return LunarFestival(FestivalType::TERM, i, e, d);
+                    return LunarFestival(i, e, d);
                 }
             }
         }

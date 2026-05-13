@@ -7,7 +7,6 @@
 #ifdef OUT
 #undef OUT
 #endif
-#include <cstdint>
 #include <mutex>
 #include <string>
 #include <map>
@@ -21,15 +20,6 @@ using namespace std;
 using namespace tyme::util;
 
 namespace tyme {
-    /**
-     * @brief 节日类型
-     */
-    enum class [[deprecated]] FestivalType {
-        DAY = 0,
-        TERM = 1,
-        EVE = 2
-    };
-
     /**
      * @brief 性别
      */
@@ -168,7 +158,7 @@ namespace tyme {
         /**
          * @brief 月
          */
-        int8_t month;
+        int month;
     };
 
     /**
@@ -191,7 +181,7 @@ namespace tyme {
         /**
          * @brief 日
          */
-        int8_t day;
+        int day;
     };
 
     /**
@@ -225,12 +215,12 @@ namespace tyme {
         /**
          * @brief 索引，0-5
          */
-        int8_t index;
+        int index;
 
         /**
          * @brief 起始星期，1234560分别代表星期一至星期天
          */
-        int8_t start;
+        int start;
     };
 
     /**
@@ -269,17 +259,17 @@ namespace tyme {
         /**
          * @brief 时
          */
-        int8_t hour;
+        int hour;
 
         /**
          * @brief 分
          */
-        int8_t minute;
+        int minute;
 
         /**
          * @brief 秒
          */
-        int8_t second;
+        int second;
     };
 
     /**
@@ -387,7 +377,7 @@ namespace tyme {
         /**
          * @brief 索引，从0开始
          */
-        int16_t index;
+        int index;
     };
 
     /**
@@ -1165,7 +1155,7 @@ namespace tyme {
         /**
          * @brief 天索引
          */
-        int8_t day_index;
+        int day_index;
     };
 
     /**
@@ -1250,7 +1240,7 @@ namespace tyme {
         /**
          * @brief 天索引
          */
-        int8_t day_index;
+        int day_index;
     };
 
     /**
@@ -1367,7 +1357,7 @@ namespace tyme {
         /**
          * @brief 天索引
          */
-        int8_t day_index;
+        int day_index;
     };
 
     /**
@@ -1577,7 +1567,7 @@ namespace tyme {
         /**
          * @brief 天索引
          */
-        int8_t day_index;
+        int day_index;
     };
 
     /**
@@ -2863,7 +2853,7 @@ namespace tyme {
         /**
          * @brief 天索引
          */
-        int8_t day_index;
+        int day_index;
     };
 
     /**
@@ -2988,7 +2978,7 @@ namespace tyme {
         /**
          * @brief 索引，0-1
          */
-        int8_t index;
+        int index;
     };
 
     /**
@@ -3037,7 +3027,7 @@ namespace tyme {
         /**
          * @brief 索引，0-3
          */
-        int8_t index;
+        int index;
     };
 
     /**
@@ -3048,7 +3038,7 @@ namespace tyme {
         ~SolarMonth() override = default;
 
         static const vector<string> NAMES;
-        static const int8_t DAYS[];
+        static const int DAYS[];
 
         explicit SolarMonth(const int year, const int month) : MonthUnit(year, month) {
             validate(year, month);
@@ -4056,7 +4046,7 @@ namespace tyme {
         ~FetusDay() override = default;
 
         explicit FetusDay(const SixtyCycle &sixty_cycle) : AbstractCulture(), fetus_heaven_stem(FetusHeavenStem(sixty_cycle.get_heaven_stem().get_index() % 5)), fetus_earth_branch(FetusEarthBranch(sixty_cycle.get_earth_branch().get_index() % 6)) {
-            constexpr int8_t indices[] = {3, 3, 8, 8, 8, 8, 8, 1, 1, 1, 1, 1, 1, 6, 6, 6, 6, 6, 5, 5, 5, 5, 5, 5, 0, 0, 0, 0, 0, -9, -9, -9, -9, -9, -5, -5, -1, -1, -1, -3, -7, -7, -7, -7, -5, 7, 7, 7, 7, 7, 7, 2, 2, 2, 2, 2, 3, 3, 3, 3};
+            constexpr int indices[] = {3, 3, 8, 8, 8, 8, 8, 1, 1, 1, 1, 1, 1, 6, 6, 6, 6, 6, 5, 5, 5, 5, 5, 5, 0, 0, 0, 0, 0, -9, -9, -9, -9, -9, -5, -5, -1, -1, -1, -3, -7, -7, -7, -7, -5, 7, 7, 7, 7, 7, 7, 2, 2, 2, 2, 2, 3, 3, 3, 3};
             const int index = indices[sixty_cycle.get_index()];
             side = index < 0 ? Side::IN : Side::OUT;
             direction = Direction::from_index(index);
@@ -4195,7 +4185,7 @@ namespace tyme {
         /**
          * @brief 天索引
          */
-        int8_t day_index;
+        int day_index;
     };
 
     /**
@@ -4264,27 +4254,27 @@ namespace tyme {
         /**
          * @brief 年数
          */
-        int16_t year_count;
+        int year_count;
 
         /**
          * @brief 月数
          */
-        int8_t month_count;
+        int month_count;
 
         /**
          * @brief 日数
          */
-        int8_t day_count;
+        int day_count;
 
         /**
          * @brief 小时数
          */
-        int8_t hour_count;
+        int hour_count;
 
         /**
          * @brief 分钟数
          */
-        int8_t minute_count;
+        int minute_count;
     };
 
     /**
@@ -4542,7 +4532,7 @@ namespace tyme {
         /**
          * @brief 序号
          */
-        int16_t index;
+        int index;
     };
 
     /**
@@ -4606,7 +4596,7 @@ namespace tyme {
         /**
          * @brief 序号
          */
-        int8_t index;
+        int index;
     };
 
     /**
@@ -4808,17 +4798,17 @@ namespace tyme {
         /**
          * @brief 饶迥(胜生周)序号，从0开始
          */
-        int16_t rab_byung_index;
+        int rab_byung_index;
 
         /**
          * @brief 五行索引，从0开始
          */
-        int8_t element_index;
+        int element_index;
 
         /**
          * @brief 生肖索引，从0开始
          */
-        int8_t zodiac_index;
+        int zodiac_index;
     };
 
     /**
@@ -5046,7 +5036,7 @@ namespace tyme {
         /**
          * @brief 农历月
          */
-        int8_t lunar_month;
+        int lunar_month;
 
         SolarTime get_start_solar_time() const;
     };
@@ -5077,7 +5067,7 @@ namespace tyme {
         /**
          * @brief 天索引
          */
-        int8_t day_index;
+        int day_index;
     };
 
     class EventBuilder;
@@ -5333,14 +5323,8 @@ namespace tyme {
     public:
         ~AbstractFestival() override = default;
 
-        explicit AbstractFestival(const FestivalType type, const int index, const Event& event, const DayUnit& day): _type(type), index(index), event(event), day(day) {
+        explicit AbstractFestival(const int index, const Event& event, const DayUnit& day): index(index), event(event), day(day) {
         }
-
-        /**
-         * @brief 节日类型
-         * @return 节日类型
-         */
-        [[deprecated]] FestivalType get_type() const;
 
         /**
          * @brief 索引
@@ -5357,24 +5341,19 @@ namespace tyme {
         string get_name() const override;
     protected:
         /**
-         * @brief 类型
-         */
-        FestivalType _type;
-
-        /**
          * @brief 索引
          */
-        int16_t index;
-
-        /**
-         * @brief 日
-         */
-        DayUnit day;
+        int index;
 
         /**
          * @brief 事件
          */
         Event event;
+
+        /**
+         * @brief 日
+         */
+        DayUnit day;
     };
 
     /**
@@ -5387,7 +5366,7 @@ namespace tyme {
         static const vector<string> NAMES;
         static string DATA;
 
-        explicit SolarFestival(const FestivalType type, const int index, const Event& event, const SolarDay& day) : AbstractFestival(type, index, event, day) {
+        explicit SolarFestival(const int index, const Event& event, const SolarDay& day) : AbstractFestival(index, event, day) {
         }
 
         static optional<SolarFestival> from_index(int year, int index);
@@ -5413,7 +5392,7 @@ namespace tyme {
         static const vector<string> NAMES;
         static string DATA;
 
-        explicit LunarFestival(const FestivalType type, const int index, const Event& event, const LunarDay& day) : AbstractFestival(type, index, event, day) {
+        explicit LunarFestival(const int index, const Event& event, const LunarDay& day) : AbstractFestival(index, event, day) {
         }
 
         static optional<LunarFestival> from_index(int year, int index);
