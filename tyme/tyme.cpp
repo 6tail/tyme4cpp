@@ -380,7 +380,7 @@ namespace tyme {
         if (i != 0) {
             m = m.next(i);
         }
-        return from_index(m.get_year(), m.get_month(), next_index(n));
+        return from_index(m.get_year(), m.get_month_with_leap(), next_index(n));
     }
 
     SolarTime Phase::get_start_solar_time() const {
@@ -662,7 +662,7 @@ namespace tyme {
         return Direction::from_name(get_name());
     }
 
-    Beast Zone::get_best() const {
+    Beast Zone::get_beast() const {
         return Beast::from_index(index);
     }
 
@@ -2747,7 +2747,7 @@ namespace tyme {
         "1月", "2月", "3月", "4月", "5月", "6月", "7月", "8月", "9月", "10月", "11月", "12月"
     };
 
-    const int SolarMonth::DAYS[] = {31, 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31};
+    const int8_t SolarMonth::DAYS[] = {31, 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31};
 
     void SolarMonth::validate(const int year, const int month) {
         if (month < 1 || month > 12) {
@@ -3423,8 +3423,8 @@ namespace tyme {
 
     vector<SolarTime> EightChar::get_solar_times(const int start_year, const int end_year) const {
         const SixtyCycle year = get_year();
-        const SixtyCycle month = get_year();
-        const SixtyCycle day = get_year();
+        const SixtyCycle month = get_month();
+        const SixtyCycle day = get_day();
         auto l = vector<SolarTime>();
         // 月地支距寅月的偏移值
         int m = month.get_earth_branch().next(-2).get_index();
@@ -4340,7 +4340,7 @@ namespace tyme {
         const bool leap = day < 0;
         const int d = abs(day);
         if (leap) {
-            if (vector<int> l = m.get_leap_days(); find(l.begin(), l.end(), d) != l.end()) {
+            if (vector<int> l = m.get_leap_days(); find(l.begin(), l.end(), d) == l.end()) {
                 throw invalid_argument("illegal leap day " + std::to_string(d) + " in " + m.to_string());
             }
         }
