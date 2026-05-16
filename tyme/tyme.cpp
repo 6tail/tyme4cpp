@@ -4,6 +4,7 @@
 #include <cmath>
 #include <array>
 #include <regex>
+#include <format>
 #include <iostream>
 #include <sstream>
 #include "tyme.h"
@@ -3859,8 +3860,11 @@ namespace tyme {
                 index -= size;
                 y += 1;
                 data.clear();
-                snprintf(buffer_y, sizeof(buffer_y), "%04d", y);
-                regex r(string(buffer_y) + R"(\d{4}[0-1][0-8][\+|-]\d{2})");
+                // snprintf(buffer_y, sizeof(buffer_y), "%04d", y);
+                // regex r(string(buffer_y) + R"(\d{4}[0-1][0-8][\+|-]\d{2})");
+                std::string prefix = std::format("{:04d}", year);
+                regex r(prefix + R"(\d{4}[0-1][0-8][\+|-]\d{2})");
+
                 auto start(DATA.cbegin());
                 while (regex_search(start, DATA.cend(), match, r)) {
                     data.push_back(match[0]);
@@ -3875,8 +3879,10 @@ namespace tyme {
             while (index < 0) {
                 y -= 1;
                 data.clear();
-                snprintf(buffer_y, sizeof(buffer_y), "%04d", y);
-                regex r(string(buffer_y) + R"(\d{4}[0-1][0-8][\+|-]\d{2})");
+                // snprintf(buffer_y, sizeof(buffer_y), "%04d", y);
+                // regex r(string(buffer_y) + R"(\d{4}[0-1][0-8][\+|-]\d{2})");
+                std::string prefix = std::format("{:04d}", year);
+                regex r(prefix + R"(\d{4}[0-1][0-8][\+|-]\d{2})");
                 auto start(DATA.cbegin());
                 while (regex_search(start, DATA.cend(), match, r)) {
                     data.push_back(match[0]);
