@@ -3,7 +3,7 @@
 #include <optional>
 #include <cmath>
 #include <array>
-#include <regex>
+#include <algorithm>
 #include <iostream>
 #include <sstream>
 #include "tyme.h"
@@ -311,9 +311,11 @@ namespace tyme {
         const string s = DAY_GODS[month.get_earth_branch().next(-2).get_index()];
         char buffer[3];
         snprintf(buffer, sizeof(buffer), "%02X", day.get_index());
-        const regex re(";" + string(buffer) + "(.[^;]*)");
-        if (smatch match; regex_search(s, match, re)) {
-            const string data= match[1];
+        const string needle = ";" + string(buffer);
+        if (auto pos = s.find(needle); pos != string::npos) {
+            const auto start = pos + needle.length();
+            const auto end = s.find(';', start);
+            const string data = s.substr(start, end == string::npos ? string::npos : end - start);
             for (unsigned long i = 0, j = data.size(); i < j; i += 2) {
                 l.push_back(from_index(stoi(data.substr(i, 2), nullptr, 16)));
             }
@@ -3794,10 +3796,19 @@ namespace tyme {
     optional<LegalHoliday> LegalHoliday::from_ymd(const int year, const int month, const int day) {
         char buffer[9];
         snprintf(buffer, sizeof(buffer), "%04d%02d%02d", year, month, day);
-        const regex re(string(buffer) + "[0-1][0-8][\\+|-]\\d{2}");
-        if (smatch match; regex_search(DATA, match, re)) {
-            const string data= match[0];
-            return LegalHoliday(year, month, day, data);
+        const string needle(buffer);
+        size_t pos = 0;
+        while ((pos = DATA.find(needle, pos)) != string::npos) {
+            if (pos + 13 <= DATA.size()) {
+                const string data = DATA.substr(pos, 13);
+                if ((data[8] == '0' || data[8] == '1') &&
+                    (data[9] >= '0' && data[9] <= '8') &&
+                    (data[10] == '+' || data[10] == '-') &&
+                    isdigit(data[11]) && isdigit(data[12])) {
+                    return LegalHoliday(year, month, day, data);
+                }
+            }
+            pos += needle.length();
         }
         return nullopt;
     }
@@ -3822,25 +3833,37 @@ namespace tyme {
         return day.to_string() + " " + name + "(" + (work ? "班" : "休") + ")";
     }
 
+    static vector<string> find_year_entries(const string& data, int y) {
+        char buf[5];
+        snprintf(buf, sizeof(buf), "%04d", y);
+        const string year_str(buf);
+        vector<string> result;
+        size_t pos = 0;
+        while ((pos = data.find(year_str, pos)) != string::npos) {
+            if (pos + 13 <= data.size()) {
+                const string entry = data.substr(pos, 13);
+                if ((entry[8] == '0' || entry[8] == '1') &&
+                    (entry[9] >= '0' && entry[9] <= '8') &&
+                    (entry[10] == '+' || entry[10] == '-') &&
+                    isdigit(entry[11]) && isdigit(entry[12])) {
+                    result.push_back(entry);
+                }
+            }
+            pos += year_str.length();
+        }
+        return result;
+    }
+
     optional<LegalHoliday> LegalHoliday::next(int n) const {
         int year = day.get_year();
         int month = day.get_month();
         if (n == 0) {
             return from_ymd(year, month, day.get_day()).value();
         }
-        auto data = vector<string>();
+        auto data = find_year_entries(DATA, year);
         char buffer[9];
         snprintf(buffer, sizeof(buffer), "%04d%02d%02d", year, month, day.get_day());
         auto today = string(buffer);
-        char buffer_y[5];
-        snprintf(buffer_y, sizeof(buffer_y), "%04d", year);
-        regex re(string(buffer_y) + R"(\d{4}[0-1][0-8][\+|-]\d{2})");
-        smatch match;
-        auto search_start(DATA.cbegin());
-        while (regex_search(search_start, DATA.cend(), match, re)) {
-            data.push_back(match[0]);
-            search_start = match[0].second;
-        }
         int index = -1;
         int size = static_cast<int>(data.size());
         for (int i = 0; i < size; i++) {
@@ -3858,14 +3881,7 @@ namespace tyme {
             while (index >= size) {
                 index -= size;
                 y += 1;
-                data.clear();
-                snprintf(buffer_y, sizeof(buffer_y), "%04d", y);
-                regex r(string(buffer_y) + R"(\d{4}[0-1][0-8][\+|-]\d{2})");
-                auto start(DATA.cbegin());
-                while (regex_search(start, DATA.cend(), match, r)) {
-                    data.push_back(match[0]);
-                    start = match[0].second;
-                }
+                data = find_year_entries(DATA, y);
                 size = static_cast<int>(data.size());
                 if (size < 1) {
                     return nullopt;
@@ -3874,14 +3890,7 @@ namespace tyme {
         } else {
             while (index < 0) {
                 y -= 1;
-                data.clear();
-                snprintf(buffer_y, sizeof(buffer_y), "%04d", y);
-                regex r(string(buffer_y) + R"(\d{4}[0-1][0-8][\+|-]\d{2})");
-                auto start(DATA.cbegin());
-                while (regex_search(start, DATA.cend(), match, r)) {
-                    data.push_back(match[0]);
-                    start = match[0].second;
-                }
+                data = find_year_entries(DATA, y);
                 size = static_cast<int>(data.size());
                 if (size < 1) {
                     return nullopt;
@@ -4465,9 +4474,20 @@ namespace tyme {
     }
 
     optional<Event> Event::from_name(const string &name) {
-        const regex re(EventManager::REGEX + name);
-        if (smatch match; regex_search(EventManager::DATA, match, re) && match.size() > 1) {
-            return Event(name, match.str(1));
+        size_t pos = EventManager::DATA.find(name);
+        while (pos != string::npos) {
+            if (pos >= 9 && EventManager::DATA[pos - 9] == '@') {
+                const string code = EventManager::DATA.substr(pos - 9, 9);
+                bool valid = true;
+                for (int i = 1; i < 9 && valid; ++i) {
+                    char c = code[i];
+                    if (!isalnum(c) && c != '_') valid = false;
+                }
+                if (valid) {
+                    return Event(name, code);
+                }
+            }
+            pos = EventManager::DATA.find(name, pos + 1);
         }
         return nullopt;
     }
@@ -4484,14 +4504,26 @@ namespace tyme {
 
     vector<Event> Event::all() {
         vector<Event> l;
-        const regex re(EventManager::REGEX + ".[^@]+");
-        smatch match;
-        auto start = EventManager::DATA.cbegin();
-        while (regex_search(start, EventManager::DATA.cend(), match, re)) {
-            if (match.size() > 2) {
-                l.emplace_back(match.str(2), match.str(1));
+        const string& data = EventManager::DATA;
+        size_t pos = 0;
+        while ((pos = data.find('@', pos)) != string::npos) {
+            if (pos + 9 <= data.size()) {
+                const string code = data.substr(pos, 9);
+                bool valid = true;
+                for (int i = 1; i < 9 && valid; ++i) {
+                    char c = code[i];
+                    if (!isalnum(c) && c != '_') valid = false;
+                }
+                if (valid) {
+                    size_t name_start = pos + 9;
+                    size_t name_end = data.find('@', name_start);
+                    const string name = data.substr(name_start, name_end == string::npos ? string::npos : name_end - name_start);
+                    if (!name.empty()) {
+                        l.emplace_back(name, code);
+                    }
+                }
             }
-            start = match[0].second;
+            pos += 9;
         }
         return l;
     }
@@ -4724,16 +4756,42 @@ namespace tyme {
     string EventManager::DATA;
 
     void EventManager::remove(const string &name) {
-        const regex re(REGEX + name);
-        DATA = regex_replace(DATA, re, "");
+        size_t pos = DATA.find(name);
+        while (pos != string::npos) {
+            if (pos >= 9 && DATA[pos - 9] == '@') {
+                const string code = DATA.substr(pos - 9, 9);
+                bool valid = true;
+                for (int i = 1; i < 9 && valid; ++i) {
+                    char c = code[i];
+                    if (!isalnum(c) && c != '_') valid = false;
+                }
+                if (valid) {
+                    DATA.erase(pos - 9, 9 + name.length());
+                    return;
+                }
+            }
+            pos = DATA.find(name, pos + 1);
+        }
     }
 
     void EventManager::save_or_update(const string &name, const string &data) {
-        if (const regex re(REGEX + name); regex_search(DATA, re)) {
-            DATA = regex_replace(DATA, re, data);
-        } else {
-            DATA += data;
+        size_t pos = DATA.find(name);
+        while (pos != string::npos) {
+            if (pos >= 9 && DATA[pos - 9] == '@') {
+                const string code = DATA.substr(pos - 9, 9);
+                bool valid = true;
+                for (int i = 1; i < 9 && valid; ++i) {
+                    char c = code[i];
+                    if (!isalnum(c) && c != '_') valid = false;
+                }
+                if (valid) {
+                    DATA.replace(pos - 9, 9 + name.length(), data);
+                    return;
+                }
+            }
+            pos = DATA.find(name, pos + 1);
         }
+        DATA += data;
     }
 
     void EventManager::update(const string &name, const Event &event) {
