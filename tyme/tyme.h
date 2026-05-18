@@ -9,6 +9,7 @@
 #endif
 #include <mutex>
 #include <string>
+#include <sstream>
 #include <map>
 #include <optional>
 #include <cmath>
