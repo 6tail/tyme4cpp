@@ -1,42 +1,23 @@
 @echo off
 chcp 65001 > nul
 
-echo Setting up environment...
-set PATH=d:\Strawberry\c\bin;d:\Strawberry\perl\bin;%PATH%
+set SCRIPT_DIR=%~dp0
+cd /d "%SCRIPT_DIR%"
 
-echo Checking Visual C++ Runtime...
-if not exist "C:\Windows\System32\msvcp140.dll" (
-    echo Warning: Visual C++ Runtime Library might be missing.
-    echo Please install Visual C++ Redistributable from:
-    echo https://aka.ms/vs/17/release/vc_redist.x64.exe
-    exit /b 1
-)
+set OUTPUT=tests.exe
 
-echo Cleaning build directory...
-if exist build rmdir /s /q build
-mkdir build
-cd build
-
-echo Running CMake...
-cmake .. -G "Ninja"
+echo Compiling tests...
+g++ -std=c++17 -Wno-deprecated -o %OUTPUT% tests.cpp ..\tyme\base.cpp ..\tyme\culture.cpp ..\tyme\cycle.cpp ..\tyme\solar.cpp ..\tyme\lunar.cpp ..\tyme\eightchar.cpp ..\tyme\childlimit.cpp ..\tyme\festival.cpp ..\tyme\rabbyung.cpp ..\tyme\seasonal.cpp ..\tyme\util.cpp
 if errorlevel 1 (
-    echo CMake configuration failed
-    exit /b 1
-)
-
-echo Building project...
-cmake --build . --config Debug
-if errorlevel 1 (
-    echo Build failed
+    echo Compilation failed
     exit /b 1
 )
 
 echo Running tests...
-.\tests.exe
+.\%OUTPUT%
 if errorlevel 1 (
     echo Tests failed
     exit /b 1
 )
 
 echo All tests completed
-cd ..

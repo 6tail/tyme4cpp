@@ -2,7 +2,7 @@ cmake_minimum_required(VERSION 3.20)
 
 project(tyme CXX)
 
-add_library(tyme SHARED util.cpp tyme.cpp)
+add_library(tyme SHARED util.cpp base.cpp culture.cpp star.cpp dog.cpp fetus.cpp nine.cpp pengzu.cpp phenology.cpp plumrain.cpp ren.cpp sixtycycle.cpp solar.cpp lunar.cpp eightchar.cpp childlimit.cpp festival.cpp rabbyung.cpp seasonal.cpp)
 target_include_directories(tyme PUBLIC ${CMAKE_CURRENT_SOURCE_DIR})
 target_compile_definitions(tyme PRIVATE BUILDING_TYME_DLL)
 

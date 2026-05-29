@@ -1,5 +1,4 @@
 #include "util.h"
-#include <regex>
 #include <cmath>
 
 using namespace std;
@@ -335,38 +334,53 @@ namespace tyme::util {
         "EqoFscDcrFpmEsF2DfFideFelFpFfFfFiaipqti1ksttikptikqckstekqttgkqttgkqteksttikptikq2fjstgjqttjkqttgkqtekstfkptikq2tijstgjiFkirFsAeACoFsiDaDiADc1AFbBfgdfikijFifegF1FhaikgFag1E2btaieeibggiffdeigFfqDfaiBkF1kEaikhkigeidhhdiegcFfakF1ggkidbiaedksaFffckekidhhdhdikcikiakicjF1deedFhFccgicdekgiFbiaikcfi1kbFibefgEgFdcFkFeFkdcfkF1kfkcickEiFkDacFiEfbiaejcFfffkhkdgkaiei1ehigikhdFikfckF1dhhdikcfgjikhfjicjicgiehdikcikggcifgiejF1jkieFhegikggcikFegiegkfjebhigikggcikdgkaFkijcfkcikfkcifikiggkaeeigefkcdfcfkhkdgkegieidhijcFfakhfgeidieidiegikhfkfckfcjbdehdikggikgkfkicjicjF1dbidikFiggcifgiejkiegkigcdiegfggcikdbgfgefjF1kfegikggcikdgFkeeijcfkcikfkekcikdgkabhkFikaffcfkhkdgkegbiaekfkiakicjhfgqdq2fkiakgkfkhfkfcjiekgFebicggbedF1jikejbbbiakgbgkacgiejkijjgigfiakggfggcibFifjefjF1kfekdgjcibFeFkijcfkfhkfkeaieigekgbhkfikidfcjeaibgekgdkiffiffkiakF1jhbakgdki1dj1ikfkicjicjieeFkgdkicggkighdF1jfgkgfgbdkicggfggkidFkiekgijkeigfiskiggfaidheigF1jekijcikickiggkidhhdbgcfkFikikhkigeidieFikggikhkffaffijhidhhakgdkhkijF1kiakF1kfheakgdkifiggkigicjiejkieedikgdfcggkigieeiejfgkgkigbgikicggkiaideeijkefjeijikhkiggkiaidheigcikaikffikijgkiahi1hhdikgjfifaakekighie1hiaikggikhkffakicjhiahaikggikhkijF1kfejfeFhidikggiffiggkigicjiekgieeigikggiffiggkidheigkgfjkeigiegikifiggkidhedeijcfkFikikhkiggkidhh1ehigcikaffkhkiggkidhh1hhigikekfiFkFikcidhh1hitcikggikhkfkicjicghiediaikggikhkijbjfejfeFhaikggifikiggkigiejkikgkgieeigikggiffiggkigieeigekijcijikggifikiggkideedeijkefkfckikhkiggkidhh1ehijcikaffkhkiggkidhh1hhigikhkikFikfckcidhh1hiaikgjikhfjicjicgiehdikcikggifikigiejfejkieFhegikggifikiggfghigkfjeijkhigikggifikiggkigieeijcijcikfksikifikiggkidehdeijcfdckikhkiggkhghh1ehijikifffffkhsFngErD1pAfBoDd1BlEtFqA2AqoEpDqElAEsEeB2BmADlDkqBtC1FnEpDqnEmFsFsAFnllBbFmDsDiCtDmAB2BmtCgpEplCpAEiBiEoFqFtEqsDcCnFtADnFlEgdkEgmEtEsCtDmADqFtAFrAtEcCqAE1BoFqC1F1DrFtBmFtAC2ACnFaoCgADcADcCcFfoFtDlAFgmFqBq2bpEoAEmkqnEeCtAE1bAEqgDfFfCrgEcBrACfAAABqAAB1AAClEnFeCtCgAADqDoBmtAAACbFiAAADsEtBqAB2FsDqpFqEmFsCeDtFlCeDtoEpClEqAAFrAFoCgFmFsFqEnAEcCqFeCtFtEnAEeFtAAEkFnErAABbFkADnAAeCtFeAfBoAEpFtAABtFqAApDcCGJ");
 
     string ShouXingUtil::decode(const string &s) {
-        string o = "0000000000";
-        string o2 = o + o;
-        string rs = regex_replace(s, regex("J"), "00");
-        rs = regex_replace(rs, regex("I"), "000");
-        rs = regex_replace(rs, regex("H"), "0000");
-        rs = regex_replace(rs, regex("G"), "00000");
-        rs = regex_replace(rs, regex("t"), "02");
-        rs = regex_replace(rs, regex("s"), "002");
-        rs = regex_replace(rs, regex("r"), "0002");
-        rs = regex_replace(rs, regex("q"), "00002");
-        rs = regex_replace(rs, regex("p"), "000002");
-        rs = regex_replace(rs, regex("o"), "0000002");
-        rs = regex_replace(rs, regex("n"), "00000002");
-        rs = regex_replace(rs, regex("m"), "000000002");
-        rs = regex_replace(rs, regex("l"), "0000000002");
-        rs = regex_replace(rs, regex("k"), "01");
-        rs = regex_replace(rs, regex("j"), "0101");
-        rs = regex_replace(rs, regex("i"), "001");
-        rs = regex_replace(rs, regex("h"), "001001");
-        rs = regex_replace(rs, regex("g"), "0001");
-        rs = regex_replace(rs, regex("f"), "00001");
-        rs = regex_replace(rs, regex("e"), "000001");
-        rs = regex_replace(rs, regex("d"), "0000001");
-        rs = regex_replace(rs, regex("c"), "00000001");
-        rs = regex_replace(rs, regex("b"), "000000001");
-        rs = regex_replace(rs, regex("a"), "0000000001");
-        rs = regex_replace(rs, regex("A"), o2 + o2 + o2);
-        rs = regex_replace(rs, regex("B"), o2 + o2 + o);
-        rs = regex_replace(rs, regex("C"), o2 + o2);
-        rs = regex_replace(rs, regex("D"), o2 + o);
-        rs = regex_replace(rs, regex("E"), o2);
-        rs = regex_replace(rs, regex("F"), o);
+        static const string O  = "0000000000";
+        static const string O2 = O + O;
+        static const string A_STR = O2 + O2 + O2;
+        static const string B_STR = O2 + O2 + O;
+        static const string C_STR = O2 + O2;
+        static const string D_STR = O2 + O;
+        static const string E_STR = O2;
+        static const string F_STR = O;
+
+        string rs;
+        rs.reserve(s.size() * 10);
+
+        for (char c : s) {
+            switch (c) {
+                case 'J': rs.append("00");           break;
+                case 'I': rs.append("000");          break;
+                case 'H': rs.append("0000");         break;
+                case 'G': rs.append("00000");        break;
+                case 't': rs.append("02");           break;
+                case 's': rs.append("002");          break;
+                case 'r': rs.append("0002");         break;
+                case 'q': rs.append("00002");        break;
+                case 'p': rs.append("000002");       break;
+                case 'o': rs.append("0000002");      break;
+                case 'n': rs.append("00000002");     break;
+                case 'm': rs.append("000000002");    break;
+                case 'l': rs.append("0000000002");   break;
+                case 'k': rs.append("01");           break;
+                case 'j': rs.append("0101");         break;
+                case 'i': rs.append("001");          break;
+                case 'h': rs.append("001001");       break;
+                case 'g': rs.append("0001");         break;
+                case 'f': rs.append("00001");        break;
+                case 'e': rs.append("000001");       break;
+                case 'd': rs.append("0000001");      break;
+                case 'c': rs.append("00000001");     break;
+                case 'b': rs.append("000000001");    break;
+                case 'a': rs.append("0000000001");   break;
+                case 'A': rs.append(A_STR);          break;
+                case 'B': rs.append(B_STR);          break;
+                case 'C': rs.append(C_STR);          break;
+                case 'D': rs.append(D_STR);          break;
+                case 'E': rs.append(E_STR);          break;
+                case 'F': rs.append(F_STR);          break;
+                default:  rs += c;                   break;
+            }
+        }
         return rs;
     }
 
