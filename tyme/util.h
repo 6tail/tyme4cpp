@@ -58,6 +58,10 @@ namespace tyme::util {
 
         static double calc_qi(double jd);
 
+        static double qi_shuo(bool is_qi, bool is_high, double jd, int pc);
+
+        static double calc(bool is_qi, double jd, const double kb[], int pc, const string& fkb);
+
         static double qi_accurate(double w);
 
         static double qi_accurate2(double jd);

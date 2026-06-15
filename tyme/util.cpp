@@ -511,7 +511,7 @@ namespace tyme::util {
     }
 
     double ShouXingUtil::mv(const double t) {
-        double v = 8399.71 - 914 * sin(0.7848 + 8328.691425 * t + 0.0001523 * t * t);
+        const double v = 8399.71 - 914 * sin(0.7848 + 8328.691425 * t + 0.0001523 * t * t);
         return v - (179 * sin(2.543 + 15542.7543 * t) + 160 * sin(0.1874 + 7214.0629 * t) + 62 * sin(3.14 + 16657.3828 * t) + 34 * sin(4.827 + 16866.9323 * t) + 22 * sin(4.9 + 23871.4457 * t) + 12 * sin(2.59 + 14914.4523 * t) + 7 * sin(0.23 + 6585.7609 * t) + 5 * sin(0.9 + 25195.624 * t) + 5 * sin(2.32 - 7700.3895 * t) + 5 * sin(3.88 + 8956.9934 * t) + 5 * sin(0.49 + 7771.3771 * t));
     }
 
@@ -567,8 +567,7 @@ namespace tyme::util {
     double ShouXingUtil::shuo_high(const double w) {
         double t = msa_lon_t2(w) * 36525;
         t = t - dt_t(t) + ONE_THIRD;
-        const double v = fmod(t + 0.5, 1) * SECOND_PER_DAY;
-        if (v < 1800 || v > SECOND_PER_DAY - 1800) {
+        if (const double v = fmod(t + 0.5, 1) * SECOND_PER_DAY; v < 1800 || v > SECOND_PER_DAY - 1800) {
             t = msa_lon_t(w) * 36525 - dt_t(t) + ONE_THIRD;
         }
         return t;
@@ -590,33 +589,42 @@ namespace tyme::util {
         return t * 36525 + ONE_THIRD;
     }
 
-    double ShouXingUtil::calc_shuo(double jd) {
-        // length of SHUO_KB
-        constexpr int size = 23;
+    double ShouXingUtil::qi_shuo(const bool is_qi, const bool is_high, const double jd, const int pc) {
+        const double w = is_qi ? floor((jd + pc - 2451259) / 365.2422 * 24) * M_PI / 12 : floor((jd + pc - 2451551) / 29.5306) * PI_2;
+        const double d = is_qi ? (is_high ? qi_high(w) : qi_low(w)) : is_high ? shuo_high(w) : shuo_low(w);
+        return floor(d + 0.5);
+    }
+
+    double ShouXingUtil::calc(const bool is_qi, const double jd, const double kb[], const int pc, const string& fkb) {
+        // length of QI_KB/SHUO_KB
+        const int size = is_qi ? 71 : 23;
         double d = 0;
-        constexpr int pc = 14;
-        jd += 2451545;
-        const double f1 = SHUO_KB[0] - pc;
-        const double f2 = SHUO_KB[size - 1] - pc;
-        if (constexpr double f3 = 2436935; jd < f1 || jd >= f3) {
-            d = floor(shuo_high(floor((jd + pc - 2451551) / 29.5306) * PI_2) + 0.5);
-        } else if (jd >= f1 && jd < f2) {
+        double j = jd + 2451545;
+        const double f1 = kb[0] - pc;
+        const double f2 = kb[size - 1] - pc;
+        // 2436935 = 1960.1.1
+        if (j < f1 || j >= 2436935) {
+            // 平气表中首个之前，或1960.1.1之后，使用现代天文算法
+            d = qi_shuo(is_qi, true, j, pc);
+        } else if (j >= f1 && j < f2) {
+            // 平气/平朔
             int i;
             for (i = 0; i < size; i += 2) {
-                if (jd + pc < SHUO_KB[i + 2]) {
+                if (j + pc < kb[i + 2]) {
                     break;
                 }
             }
-            d = SHUO_KB[i] + SHUO_KB[i + 1] * floor((jd + pc - SHUO_KB[i]) / SHUO_KB[i + 1]);
-            d = floor(d + 0.5);
-            if (d == 1683460) {
-                d++;
+            d = floor(kb[i] + kb[i + 1] * floor((j + pc - kb[i]) / kb[i + 1]) + 0.5);
+            // 平朔特殊处理，如果使用太初历计算-103年1月24日的朔日，结果得到的是23日，这里修正为24日(实历)。修正后仍不影响-103的无中置闰。如果使用秦汉历，得到的是24日。
+            if (!is_qi && d == 1683460) {
+                d += 1;
             }
             d -= 2451545;
-        } else if (jd >= f2) {
-            d = floor(shuo_low(floor((jd + pc - 2451551) / 29.5306) * PI_2) + 0.5);
-            const int from = static_cast<int>((jd - f2) / 29.5306);
-            const string_view view = SB;
+        } else if (j >= f2) {
+            // 定气/定朔
+            d = qi_shuo(is_qi, false, j, pc);
+            const int from = static_cast<int>(is_qi ? (j - f2) / 365.2422 * 24 : (j - f2) / 29.5306);
+            const string_view view = fkb;
             if (const string_view n = view.substr(from, 1); "1" == n) {
                 d += 1;
             } else if ("2" == n) {
@@ -626,40 +634,12 @@ namespace tyme::util {
         return d;
     }
 
+    double ShouXingUtil::calc_shuo(double jd) {
+        return calc(false, jd, SHUO_KB, 14, SB);
+    }
+
     double ShouXingUtil::calc_qi(double jd) {
-        // length of QI_KB
-        constexpr int size = 71;
-        double d = 0;
-        constexpr int pc = 7;
-        jd += 2451545;
-        const double f1 = QI_KB[0] - pc;
-        const double f2 = QI_KB[size - 1] - pc;
-        if (constexpr double f3 = 2436935; jd < f1 || jd >= f3) {
-            d = floor(qi_high(floor((jd + pc - 2451259) / 365.2422 * 24) * M_PI / 12) + 0.5);
-        } else if (jd >= f1 && jd < f2) {
-            int i;
-            for (i = 0; i < size; i += 2) {
-                if (jd + pc < QI_KB[i + 2]) {
-                    break;
-                }
-            }
-            d = QI_KB[i] + QI_KB[i + 1] * floor((jd + pc - QI_KB[i]) / QI_KB[i + 1]);
-            d = floor(d + 0.5);
-            if (d == 1683460) {
-                d++;
-            }
-            d -= 2451545;
-        } else if (jd >= f2) {
-            d = floor(qi_low(floor((jd + pc - 2451259) / 365.2422 * 24) * M_PI / 12) + 0.5);
-            const int from = static_cast<int>((jd - f2) / 365.2422 * 24);
-            const string_view view = QB;
-            if (const string_view n = view.substr(from, 1); "1" == n) {
-                d += 1;
-            } else if ("2" == n) {
-                d -= 1;
-            }
-        }
-        return d;
+        return calc(true, jd, QI_KB, 7, QB);
     }
 
     double ShouXingUtil::qi_accurate(const double w) {
@@ -668,9 +648,9 @@ namespace tyme::util {
     }
 
     double ShouXingUtil::qi_accurate2(const double jd) {
-        double d = M_PI / 12;
-        double w = floor((jd + 293) / 365.2422 * 24) * d;
-        double a = qi_accurate(w);
+        const double d = M_PI / 12;
+        const double w = floor((jd + 293) / 365.2422 * 24) * d;
+        const double a = qi_accurate(w);
         if (a - jd > 5) {
             return qi_accurate(w - d);
         }

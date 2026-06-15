@@ -2985,3 +2985,39 @@ TEST_CASE("solar_festival_test_1") {
         REQUIRE(names[i] == f.value().next(i).value().get_name());
     }
 }
+
+TEST_CASE("hijri_year_test_0") {
+    REQUIRE(false == HijriYear::from_year(1).is_leap());
+    REQUIRE(true == HijriYear::from_year(2).is_leap());
+    REQUIRE(false == HijriYear::from_year(0).is_leap());
+    REQUIRE(true == HijriYear::from_year(-1).is_leap());
+}
+
+TEST_CASE("hijri_day_test_0") {
+    REQUIRE("1年穆哈兰姆月1日" == SolarDay::from_ymd(622, 7, 16).get_hijri_day().to_string());
+}
+
+TEST_CASE("hijri_day_test_1") {
+    REQUIRE("1447年都尔喀尔德月26日" == SolarDay::from_ymd(2026, 5, 13).get_hijri_day().to_string());
+    REQUIRE("2026年5月13日" == HijriDay::from_ymd(1447, 11, 26).get_solar_day().to_string());
+}
+
+TEST_CASE("hijri_day_test_2") {
+    REQUIRE("-538年都尔黑哲月12日" == SolarDay::from_ymd(100, 7, 8).get_hijri_day().to_string());
+    REQUIRE("100年7月8日" == HijriDay::from_ymd(-538, 12, 12).get_solar_day().to_string());
+}
+
+TEST_CASE("hijri_day_test_3") {
+    REQUIRE("0年都尔黑哲月29日" == SolarDay::from_ymd(622, 7, 15).get_hijri_day().to_string());
+    REQUIRE("622年7月15日" == HijriDay::from_ymd(0, 12, 29).get_solar_day().to_string());
+}
+
+TEST_CASE("hijri_day_test_4") {
+    REQUIRE("-640年主马达·敖外鲁月16日" == SolarDay::from_ymd(1, 1, 1).get_hijri_day().to_string());
+    REQUIRE("1年1月1日" == HijriDay::from_ymd(-640, 5, 16).get_solar_day().to_string());
+}
+
+TEST_CASE("hijri_day_test_5") {
+    REQUIRE("9666年赖比尔·阿色尼月2日" == SolarDay::from_ymd(9999, 12, 31).get_hijri_day().to_string());
+    REQUIRE("9999年12月31日" == HijriDay::from_ymd(9666, 4, 2).get_solar_day().to_string());
+}

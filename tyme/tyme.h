@@ -92,6 +92,15 @@ namespace tyme {
     public:
         ~AbstractCulture() override = default;
 
+        /**
+         * @brief 校验值是否在指定范围内
+         * @param value 待校验的值
+         * @param min 最小值（含）
+         * @param max 最大值（含）
+         * @param field 字段名称，用于异常提示
+         */
+        static void validate_range(int value, int min, int max, const string& field);
+
         bool equals(const Culture *o) const;
 
         /**
@@ -113,6 +122,14 @@ namespace tyme {
          * @return 索引，从0开始
          */
         static int index_of(int index, int size);
+
+        /**
+         * @brief 整数除法向零取整
+         * @param x 被除数
+         * @param y 除数
+         * @return 商
+         */
+        static int floor_div(int x, int y);
     };
 
     /**
@@ -131,6 +148,12 @@ namespace tyme {
          * @return 年
          */
         int get_year() const;
+
+        /**
+         * @brief 用于比较大小的索引
+         * @return 索引
+         */
+        virtual long get_compare_index() const;
     protected:
         /**
          * @brief 年
@@ -154,6 +177,12 @@ namespace tyme {
          * @return 月
          */
         int get_month() const;
+
+        /**
+         * @brief 用于比较大小的索引
+         * @return 索引
+         */
+        long get_compare_index() const override;
     protected:
         /**
          * @brief 月
@@ -177,6 +206,12 @@ namespace tyme {
          * @return 日
          */
         int get_day() const;
+
+        /**
+         * @brief 用于比较大小的索引
+         * @return 索引
+         */
+        long get_compare_index() const override;
     protected:
         /**
          * @brief 日
@@ -255,6 +290,18 @@ namespace tyme {
          * @return 秒
          */
         int get_second() const;
+
+        /**
+         * @brief 当天秒数
+         * @return 当天秒数
+         */
+        int get_seconds_in_day() const;
+
+        /**
+         * @brief 用于比较大小的索引
+         * @return 索引
+         */
+        long get_compare_index() const override;
     protected:
         /**
          * @brief 时
@@ -1857,9 +1904,7 @@ namespace tyme {
         ~SixtyCycleYear() override = default;
 
         explicit SixtyCycleYear(const int year) : AbstractCulture() {
-            if (year < -1 || year > 9999) {
-                throw invalid_argument("illegal sixty cycle year: " + std::to_string(year));
-            }
+            validate_range(year, -1, 9999, "sixty cycle year");
             this->year = year;
         }
 
@@ -3121,6 +3166,11 @@ namespace tyme {
     class RabByungDay;
 
     /**
+     * @brief 回历日（公元622年7月16日为伊斯兰历元年元旦）
+     */
+    class HijriDay;
+
+    /**
      * @brief 公历日
      */
     class SolarDay : public DayUnit {
@@ -3292,6 +3342,12 @@ namespace tyme {
          * @return 九星
          */
         NineStar get_nine_star() const;
+
+        /**
+         * @brief 回历日
+         * @return 回历日
+         */
+        HijriDay get_hijri_day() const;
     };
 
     /**
@@ -5406,6 +5462,180 @@ namespace tyme {
         optional<LunarFestival> next(int n) const;
 
         string to_string() const override;
+    };
+
+    /**
+     * @brief 回历月
+     */
+    class HijriMonth;
+
+    /**
+     * @brief 回历年
+     */
+    class HijriYear : public YearUnit {
+    public:
+        ~HijriYear() override = default;
+
+        explicit HijriYear(const int year) : YearUnit(year) {
+            validate(year);
+        }
+
+        static void validate(int year);
+
+        static HijriYear from_year(int year);
+
+        /**
+         * @brief 天数（平年354天，闰年355天）
+         * @return 天数
+         */
+        int get_day_count() const;
+
+        /**
+         * @brief 是否闰年(1个闰周为30年，1个闰周中第2、5、7、10、13、16、18、21、24、26、29年为闰年)
+         * @return true/false
+         */
+        bool is_leap() const;
+
+        string get_name() const override;
+
+        HijriYear next(int n) const;
+
+        /**
+         * @brief 月份列表，1年有12个月。
+         * @return 月份列表
+         */
+        vector<HijriMonth> get_months() const;
+
+        /**
+         * @brief 首月
+         * @return 回历月
+         */
+        HijriMonth get_first_month() const;
+    };
+
+    /**
+     * @brief 回历月
+     */
+    class HijriMonth : public MonthUnit {
+    public:
+        ~HijriMonth() override = default;
+
+        static const vector<string> NAMES;
+
+        explicit HijriMonth(const int year, const int month) : MonthUnit(year, month) {
+            validate(year, month);
+        }
+
+        static void validate(int year, int month);
+
+        static HijriMonth from_ym(int year, int month);
+
+        /**
+         * @brief 回历年
+         * @return 回历年
+         */
+        HijriYear get_hijri_year() const;
+
+        /**
+         * @brief 天数（单数月30天，双数月29天，闰年第12月30天)
+         * @return 天数
+         */
+        int get_day_count() const;
+
+        /**
+         * @brief 位于当年的索引(0-11)
+         * @return 索引
+         */
+        int get_index_in_year() const;
+
+        string get_name() const override;
+
+        string to_string() const override;
+
+        HijriMonth next(int n) const;
+
+        /**
+         * @brief 本月的回历日列表
+         * @return 回历日列表
+         */
+        vector<HijriDay> get_days() const;
+
+        /**
+         * @brief 本月第1天
+         * @return 回历日
+         */
+        HijriDay get_first_day() const;
+    };
+
+    /**
+     * @brief 回历日（公元622年7月16日为伊斯兰历元年元旦）
+     */
+    class HijriDay : public DayUnit {
+    public:
+        ~HijriDay() override = default;
+
+        static const vector<string> NAMES;
+
+        explicit HijriDay(const int year, const int month, const int day) : DayUnit(year, month, day) {
+            validate(year, month, day);
+        }
+
+        static void validate(int year, int month, int day);
+
+        static HijriDay from_ymd(int year, int month, int day);
+
+        /**
+         * @brief 回历月
+         * @return 回历月
+         */
+        HijriMonth get_hijri_month() const;
+
+        string get_name() const override;
+
+        string to_string() const override;
+
+        HijriDay next(int n) const;
+
+        /**
+         * @brief 是否在指定回历日之前
+         * @param other 回历日
+         * @return true/false
+         */
+        bool is_before(const HijriDay &other) const;
+
+        /**
+         * @brief 是否在指定回历日之后
+         * @param other 回历日
+         * @return true/false
+         */
+        bool is_after(const HijriDay &other) const;
+
+        bool equals(const HijriDay &other) const;
+
+        /**
+         * @brief 位于当年的索引
+         * @return 索引
+         */
+        int get_index_in_year() const;
+
+        /**
+         * @brief 回历日期相减，获得相差天数
+         * @param other 公历日
+         * @return 天数
+         */
+        int subtract(const HijriDay &other) const;
+
+        /**
+         * @brief 儒略日
+         * @return 儒略日
+         */
+        JulianDay get_julian_day() const;
+
+        /**
+         * @brief 公历日
+         * @return 公历日
+         */
+        SolarDay get_solar_day() const;
     };
 }
 #endif
